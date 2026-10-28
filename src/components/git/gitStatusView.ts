@@ -66,6 +66,11 @@ export function remoteTarget(raw: string | null | undefined): RemoteTarget | nul
   }
 }
 
+// A saved GitHub link or any remote already configured in the local repository.
+export function hasGitRemote(project: Pick<Project, 'githubUrl' | 'gitStatus'>): boolean {
+  return Boolean(project.githubUrl || project.gitStatus?.hasRemote || project.gitStatus?.remoteUrl);
+}
+
 // What the card badge says. Anything the last check could not confirm is never shown as Synced.
 export function getCardStatus(project: Project, now: number = Date.now()): CardStatus {
   if (project.projectStatus === 'not_configured') return { tone: 'not_configured', text: 'Not Configured' };
@@ -74,25 +79,24 @@ export function getCardStatus(project: Project, now: number = Date.now()): CardS
   const git = project.gitStatus;
   if (git && git.isGitRepo === false) return { tone: 'not_git', text: 'Git unavailable' };
 
-  const linked = Boolean(project.githubUrl);
-  if (!linked) return { tone: 'local_only', text: 'Local Only' };
+  if (!hasGitRemote(project)) return { tone: 'local_only', text: 'Local Only' };
   if (!git) return { tone: 'ready', text: 'Not checked yet' };
 
   switch (git.syncStatus) {
     case 'unavailable':
       return { tone: 'unavailable', text: 'Status unavailable' };
     case 'diverged':
-      return { tone: 'diverged', text: 'Diverged from GitHub' };
+      return { tone: 'diverged', text: 'Diverged from remote' };
     case 'behind':
-      return { tone: 'behind', text: 'Behind GitHub' };
+      return { tone: 'behind', text: 'Behind remote' };
     case 'both':
-      return { tone: 'diverged', text: 'Changes here, updates on GitHub' };
+      return { tone: 'diverged', text: 'Changes here, updates on the remote' };
     case 'local_changes':
       return { tone: 'changes', text: 'Changes to publish' };
     case 'remote_branches':
-      return { tone: 'behind', text: 'Other branches on GitHub' };
+      return { tone: 'behind', text: 'Other branches on the remote' };
     case 'not_connected':
-      return { tone: 'ready', text: 'Not connected to a GitHub branch' };
+      return { tone: 'ready', text: 'Not connected to a remote branch' };
     case 'synced':
       return isRemoteCheckStale(git.remoteCheckedAt, now)
         ? { tone: 'unconfirmed', text: 'Not confirmed recently' }

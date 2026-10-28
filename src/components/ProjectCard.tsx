@@ -13,7 +13,7 @@ import { ValidationWarningModal } from './ValidationWarningModal';
 import { CommitModal } from './CommitModal';
 import { BranchIntegrationModal } from './git/BranchIntegrationModal';
 import { GitStatusSummary } from './git/GitStatusSummary';
-import { formatRelativeTime, getCardStatus, remoteTarget, type CardStatus, CardTone } from './git/gitStatusView';
+import { formatRelativeTime, getCardStatus, hasGitRemote, remoteTarget, type CardStatus, CardTone } from './git/gitStatusView';
 import { open as openExternal } from '@tauri-apps/api/shell';
 import { RecoveryWorkspace } from './recovery/RecoveryWorkspace';
 import { ProjectLabels } from './ProjectLabels';
@@ -139,7 +139,7 @@ const errorText = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 function StatusLabel({ project, cardStatus, compact = false }: { project: Project; cardStatus: CardStatus; compact?: boolean }) {
-  const remote = cardStatus.tone === 'local_only' ? remoteTarget(project.gitStatus?.remoteUrl) : null;
+  const remote = !project.githubUrl ? remoteTarget(project.gitStatus?.remoteUrl) : null;
   if (remote) {
     return (
       <button
@@ -214,6 +214,8 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
   const isArchived = project.archived || false;
   const isBusy = isLoading || isCommitting || syncingProjects.has(project.id);
   const cardStatus = getCardStatus(project);
+  // A GitLab (or any other) remote already in the folder is a connected repository.
+  const shownStatus = project.projectStatus === 'local_only' && hasGitRemote(project) ? 'ready' : project.projectStatus;
 
   // Advanced Git views need a local Git folder; a GitHub link is not required.
   const canShowDetails = Boolean(project.localPath) && project.gitStatus?.isGitRepo !== false;
@@ -684,7 +686,7 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
 
   // Render different action buttons based on project status
   const renderActions = () => {
-    switch (project.projectStatus) {
+    switch (shownStatus) {
       case 'not_configured':
         return (
           <div className="flex gap-2">
@@ -804,7 +806,7 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
               onClick={() => setIntegrationMode('pull_branches')}
               disabled={notGit || !hasRemoteBranches || isBusy}
               className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Bring in branches you choose from GitHub; the branches are kept"
+              title="Bring in branches you choose from the remote; the branches are kept"
             >
               <Download className="w-4 h-4" />
               Pull Updates
@@ -824,7 +826,7 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
               onClick={() => void startPublish('full_sync')}
               disabled={notGit || isBusy}
               className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Sync the current branch with its GitHub branch. Other branches are not touched."
+              title="Sync the current branch with its remote branch. Other branches are not touched."
             >
               <RefreshCw className="w-4 h-4" />
               Sync Branch
@@ -887,7 +889,7 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
       });
     };
 
-    switch (project.projectStatus) {
+    switch (shownStatus) {
       case 'not_configured':
         items.push(
           { id: 'link-github', label: 'Link GitHub', onClick: () => setShowLinkGitHubModal(true) },
@@ -1363,7 +1365,7 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
           <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
             <GitBranch className="w-4 h-4" aria-hidden="true" />
             <span>
-              {project.gitStatus.remoteBranches.length} other branch(es) on GitHub:{' '}
+              {project.gitStatus.remoteBranches.length} other branch(es) on the remote:{' '}
               {project.gitStatus.remoteBranches.join(', ')}
             </span>
           </div>

@@ -166,7 +166,7 @@ export function CommitModal({
             <GitCommit className="w-5 h-5 text-teal-600 dark:text-teal-400" aria-hidden="true" />
             <div>
               <h2 id="commit-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-                {mode === 'full_sync' ? 'Sync With GitHub' : 'Publish Changes'}
+                {mode === 'full_sync' ? 'Sync with remote' : 'Publish Changes'}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">{projectName}</p>
             </div>

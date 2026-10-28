@@ -46,9 +46,9 @@ export function GitStatusSummary({ project }: { project: Project }) {
                 {' '}tracks <span className="font-mono">{git.upstream}</span>
               </>
             ) : git.hasRemote ? (
-              ' has no GitHub branch to track yet'
+              ' has no remote branch to track yet'
             ) : (
-              ' (no GitHub remote)'
+              ' (no Git remote)'
             )}
           </span>
         ) : (
@@ -68,18 +68,18 @@ export function GitStatusSummary({ project }: { project: Project }) {
 
       {git.syncStatus === 'diverged' && (
         <p className="text-yellow-700 dark:text-yellow-400 pl-6">
-          Your computer and GitHub each have commits the other lacks. BitGit will not overwrite
+          Your computer and the remote each have commits the other lacks. BitGit will not overwrite
           either side, so combine them outside BitGit first.
         </p>
       )}
       {git.syncStatus === 'behind' && (
         <p className="text-gray-600 dark:text-gray-400 pl-6">
-          GitHub has new commits for this branch. Sync Branch brings them in.
+          The remote has new commits for this branch. Sync Branch brings them in.
         </p>
       )}
       {git.syncStatus === 'both' && (
         <p className="text-yellow-700 dark:text-yellow-400 pl-6">
-          GitHub has new commits and this folder has uncommitted changes. Sync Branch refuses to
+          The remote has new commits and this folder has uncommitted changes. Sync Branch refuses to
           continue until those changes are dealt with; nothing is changed.
         </p>
       )}
@@ -98,7 +98,7 @@ export function GitStatusSummary({ project }: { project: Project }) {
         <div className="flex items-start gap-2 text-red-700 dark:text-red-400" role="alert">
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
           <span>
-            Could not read GitHub: {git.remoteError}
+            Could not read the remote: {git.remoteError}
             {git.remoteCheckedAt ? ` Last successful check ${formatRelativeTime(git.remoteCheckedAt)}.` : ''}
           </span>
         </div>
@@ -107,8 +107,8 @@ export function GitStatusSummary({ project }: { project: Project }) {
           <Clock className="w-4 h-4" aria-hidden="true" />
           <span>
             {git.remoteCheckedAt
-              ? `GitHub last read ${formatRelativeTime(git.remoteCheckedAt)}${checkedStale ? '. Refresh to confirm.' : ''}`
-              : 'GitHub has not been read yet.'}
+              ? `Remote last read ${formatRelativeTime(git.remoteCheckedAt)}${checkedStale ? '. Refresh to confirm.' : ''}`
+              : 'The remote has not been read yet.'}
           </span>
         </div>
       ) : null}

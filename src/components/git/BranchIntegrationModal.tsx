@@ -84,7 +84,7 @@ export function BranchIntegrationModal({
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           <p className="text-sm text-gray-700 dark:text-gray-300">
             Choose the branches to bring into {target}. Each one is merged with a merge commit,
-            checked for problems and then published to GitHub. Nothing is chosen for you.
+            checked for problems and then published to the remote. Nothing is chosen for you.
           </p>
 
           {!currentBranch && (
@@ -95,10 +95,10 @@ export function BranchIntegrationModal({
 
           {branches.length === 0 ? (
             <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-              No other branches were found on GitHub at the last check. Use Refresh to look again.
+              No other branches were found on the remote at the last check. Use Refresh to look again.
             </p>
           ) : (
-            <ul className="space-y-2" aria-label="Branches on GitHub">
+            <ul className="space-y-2" aria-label="Branches on the remote">
               {branches.map((branch) => (
                 <li key={branch}>
                   <label className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -135,7 +135,7 @@ export function BranchIntegrationModal({
                 <>
                   {noun === 'Merge' ? 'Merging' : 'Pulling'}{' '}
                   <span className="font-mono">{chosen.join(', ')}</span> into {target}.{' '}
-                  {chosen.length === 1 ? 'That branch stays' : 'Those branches stay'} on GitHub and on this computer.
+                  {chosen.length === 1 ? 'That branch stays' : 'Those branches stay'} on the remote and on this computer.
                 </>
               )}
             </p>
