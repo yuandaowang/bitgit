@@ -1011,27 +1011,25 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
         className={`min-w-0 bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 ${TONE_BORDER[cardStatus.tone]} p-3 transition-all hover:shadow-md dark:hover:shadow-lg`}
       >
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2 min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
             <input
               type="checkbox"
               checked={isSelected}
               onChange={() => toggleSelection(project.id)}
-              className="mt-1 w-4 h-4 text-teal-600 rounded focus:ring-2 focus:ring-teal-500"
+              className="h-4 w-4 shrink-0 rounded text-teal-600 focus:ring-2 focus:ring-teal-500"
             />
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="inline-flex shrink-0">{getStatusIcon()}</span>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <h3
-                    className="font-semibold text-gray-900 dark:text-white truncate"
-                    title={project.description || project.name}
-                  >
-                    {project.name}
-                  </h3>
-                  {isArchived && <Archive className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500" />}
-                </div>
-                <StatusLabel project={project} cardStatus={cardStatus} compact />
+            <span className="inline-flex shrink-0">{getStatusIcon()}</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h3
+                  className="font-semibold text-gray-900 dark:text-white truncate"
+                  title={project.description || project.name}
+                >
+                  {project.name}
+                </h3>
+                {isArchived && <Archive className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500" />}
               </div>
+              <StatusLabel project={project} cardStatus={cardStatus} compact />
             </div>
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -1169,13 +1167,13 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => toggleSelection(project.id)}
-            className="w-4 h-4 text-teal-600 rounded focus:ring-2 focus:ring-teal-500"
-          />
           <div className="flex min-w-0 items-center gap-3">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => toggleSelection(project.id)}
+              className="h-4 w-4 shrink-0 rounded text-teal-600 focus:ring-2 focus:ring-teal-500"
+            />
             <span className="inline-flex shrink-0">{getStatusIcon()}</span>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
