@@ -8,6 +8,8 @@ import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { BulkResultPanel } from './git/BulkResultPanel';
 import type { BulkProjectResult, PublishAction } from '../types';
 import { readDashboardView, writeDashboardView, type BoardDensity, type BoardLayout } from '../lib/dashboardView';
+import { labelCatalog, sameLabel } from '../lib/labels';
+import { LabelFilter } from './LabelFilter';
 import { Plus, RefreshCw, Settings, Sun, Moon, CheckSquare, Square, Upload, Search, Filter, BarChart3, FolderGit2 } from 'lucide-react';
 
 // Shortcuts take Ctrl everywhere and also ⌘ on macOS, where hints show ⌘.
@@ -49,6 +51,7 @@ export function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showArchived, setShowArchived] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'name' | 'favorite' | 'activity'>('favorite');
   const [currentView, setCurrentView] = useState<'projects' | 'analytics'>('projects');
   const [density, setDensity] = useState<BoardDensity>(() => readDashboardView().density);
@@ -63,10 +66,12 @@ export function Dashboard() {
   const filteredProjects = projects
     .filter((project) => {
       // Search filter
-      const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           project.localPath?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           (project.githubOwner && project.githubOwner.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                           (project.githubRepo && project.githubRepo.toLowerCase().includes(searchQuery.toLowerCase()));
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = project.name.toLowerCase().includes(query) ||
+                           project.localPath?.toLowerCase().includes(query) ||
+                           (project.githubOwner && project.githubOwner.toLowerCase().includes(query)) ||
+                           (project.githubRepo && project.githubRepo.toLowerCase().includes(query)) ||
+                           (project.labels ?? []).some((label) => label.toLowerCase().includes(query));
 
       // Status filter
       const matchesStatus = statusFilter === 'all' || project.projectStatus === statusFilter;
@@ -77,7 +82,10 @@ export function Dashboard() {
       // Favorites filter
       const matchesFavorites = !favoritesOnly || project.favorite;
 
-      return matchesSearch && matchesStatus && matchesArchive && matchesFavorites;
+      const matchesLabels = selectedLabels.length === 0
+        || (project.labels ?? []).some((label) => selectedLabels.some((selected) => sameLabel(selected, label)));
+
+      return matchesSearch && matchesStatus && matchesArchive && matchesFavorites && matchesLabels;
     })
     .sort((a, b) => {
       // Sort by favorites first if enabled
@@ -229,6 +237,7 @@ export function Dashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleRefreshAll, projects.length, hasSelection, selectAll, clearSelection, toggleTheme]);
 
+  const catalog = labelCatalog(projects);
   const boardClass = layout === 'list'
     ? density === 'simple' ? 'space-y-2' : 'space-y-4'
     : density === 'simple'
@@ -402,6 +411,8 @@ export function Dashboard() {
               </select>
             </div>
 
+            <LabelFilter options={catalog} selected={selectedLabels} onChange={setSelectedLabels} />
+
             {/* Favorites Filter */}
             <button
               onClick={() => setFavoritesOnly(!favoritesOnly)}
@@ -534,6 +545,7 @@ export function Dashboard() {
                 onClick={() => {
                   setSearchQuery('');
                   setStatusFilter('all');
+                  setSelectedLabels([]);
                 }}
                 className="px-6 py-3 text-white bg-teal-600 dark:bg-teal-700 rounded-lg hover:bg-teal-700 dark:hover:bg-teal-800 transition-colors"
               >
@@ -544,7 +556,7 @@ export function Dashboard() {
         ) : (
           <div className={boardClass} data-layout={layout} data-density={density}>
             {filteredProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} density={density} />
+              <ProjectCard key={project.id} project={project} density={density} labelCatalog={catalog.map((item) => item.name)} />
             ))}
           </div>
         )}

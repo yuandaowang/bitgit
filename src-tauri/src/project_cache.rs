@@ -542,6 +542,7 @@ mod tests {
             last_activity: None,
             statistics: None,
             template: None,
+            labels: Vec::new(),
         }
     }
 
@@ -630,6 +631,7 @@ mod tests {
         let loaded = store.load();
         assert_eq!(loaded.len(), 1);
         assert_eq!(loaded[0].id, "old-1");
+        assert!(loaded[0].labels.is_empty(), "a cache without labels loads as none");
     }
 
     #[test]

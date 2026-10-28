@@ -15,6 +15,7 @@ import { BranchIntegrationModal } from './git/BranchIntegrationModal';
 import { GitStatusSummary } from './git/GitStatusSummary';
 import { formatRelativeTime, getCardStatus, CardTone } from './git/gitStatusView';
 import { RecoveryWorkspace } from './recovery/RecoveryWorkspace';
+import { ProjectLabels } from './ProjectLabels';
 import {
   GitBranch,
   CheckCircle,
@@ -45,6 +46,7 @@ import {
 interface ProjectCardProps {
   project: Project;
   density?: 'detail' | 'simple';
+  labelCatalog?: string[];
 }
 
 interface CardMenuItem {
@@ -82,7 +84,7 @@ const NOTICE_STYLE: Record<NoticeTone, string> = {
 const errorText = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-export function ProjectCard({ project, density = 'detail' }: ProjectCardProps) {
+export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: ProjectCardProps) {
   const {
     syncProject,
     toggleSelection,
@@ -1016,8 +1018,7 @@ export function ProjectCard({ project, density = 'detail' }: ProjectCardProps) {
           </div>
         </div>
 
-        {/* Labels from the next step mount here. */}
-        <div data-testid="project-labels-slot" className="empty:hidden" />
+        <ProjectLabels project={project} catalog={labelCatalog} compact />
 
         <div className="mt-2 space-y-1 min-w-0">
           {identity && (
@@ -1176,6 +1177,8 @@ export function ProjectCard({ project, density = 'detail' }: ProjectCardProps) {
           Add description
         </button>
       )}
+
+      <ProjectLabels project={project} catalog={labelCatalog} />
 
       {/* Project Info */}
       <div className="space-y-2 mb-4 text-sm">

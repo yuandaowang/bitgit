@@ -407,6 +407,7 @@ pub fn merge_local_import(
         last_activity: None,
         statistics: None,
         template: None,
+        labels: Vec::new(),
     };
     let status = status_from_check(import.check, None, now);
     apply_git_status(&mut project, status);
@@ -468,6 +469,7 @@ pub fn merge_github_import(
         last_activity: None,
         statistics: None,
         template: None,
+        labels: Vec::new(),
     };
     projects.push(project.clone());
     project
@@ -516,6 +518,7 @@ mod tests {
             last_activity: None,
             statistics: None,
             template: None,
+            labels: Vec::new(),
         }
     }
 
@@ -948,6 +951,7 @@ mod tests {
         let mut existing = project("keep-me", Some("C:/src/app"), None);
         existing.favorite = Some(true);
         existing.description = Some("mine".to_string());
+        existing.labels = vec!["Work".to_string()];
         existing.last_synced = Some("2026-02-02T00:00:00Z".to_string());
         let mut projects = vec![existing];
 
@@ -964,6 +968,7 @@ mod tests {
         assert_eq!(updated.id, "keep-me");
         assert_eq!(updated.favorite, Some(true));
         assert_eq!(updated.description.as_deref(), Some("mine"));
+        assert_eq!(updated.labels, vec!["Work".to_string()]);
         assert_eq!(updated.last_synced.as_deref(), Some("2026-02-02T00:00:00Z"));
         assert_eq!(
             updated.git_status.unwrap().sync_status,
@@ -1040,12 +1045,14 @@ mod tests {
         // Linked earlier by URL with a bare repo name, as create_github_repository stores it.
         let mut linked = project("linked", Some("C:/src/app"), Some(("Octo", "App")));
         linked.favorite = Some(true);
+        linked.labels = vec!["Work".to_string()];
         let mut projects = vec![linked];
 
         let result = merge_github_import(&mut projects, &gh_repo("octo", "app"), NOW);
         assert_eq!(projects.len(), 1);
         assert_eq!(result.id, "linked");
         assert_eq!(result.favorite, Some(true));
+        assert_eq!(result.labels, vec!["Work".to_string()]);
         assert_eq!(result.local_path.as_deref(), Some("C:/src/app"));
     }
 

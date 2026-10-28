@@ -106,6 +106,7 @@ fn main() {
             update_project_metadata,
             toggle_project_favorite,
             toggle_project_archived,
+            set_project_labels,
             apply_project_template,
             increment_project_stats,
             // Analytics (Priority 1)

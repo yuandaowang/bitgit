@@ -360,6 +360,7 @@ pub async fn create_project(
         last_activity: None,
         statistics: None,
         template: None,
+        labels: Vec::new(),
     };
 
     // Save to cache
@@ -958,6 +959,16 @@ pub async fn toggle_project_favorite(project_id: String) -> Result<Project, Stri
     project_cache::update_project(&project_id, |project| {
         project.favorite = Some(!project.favorite.unwrap_or(false));
         project.last_activity = Some(now_rfc3339());
+    })
+    .map_err(|e| format!("Failed to save project: {}", e))
+}
+
+/// Replace a project's labels. Invalid input is rejected and the stored list is left as it was.
+#[tauri::command]
+pub async fn set_project_labels(project_id: String, labels: Vec<String>) -> Result<Project, String> {
+    let normalized = normalize_labels(&labels)?;
+    project_cache::update_project(&project_id, |project| {
+        project.labels = normalized;
     })
     .map_err(|e| format!("Failed to save project: {}", e))
 }

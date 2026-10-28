@@ -27,6 +27,7 @@ export interface Project {
   description?: string | null;          // Project notes/description
   archived?: boolean;                   // Archive status (hide without deleting)
   favorite?: boolean;                   // Pinned/favorited projects
+  labels?: string[];                    // User labels; absent on older saved projects
   lastActivity?: string | null;         // Last activity timestamp
   statistics?: ProjectStatistics | null; // Usage statistics
   template?: string | null;             // Template used to initialize

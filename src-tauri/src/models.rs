@@ -38,6 +38,68 @@ pub struct Project {
     pub statistics: Option<ProjectStatistics>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
+    // Missing on caches written before labels existed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub labels: Vec<String>,
+}
+
+const MAX_LABELS: usize = 8;
+const MAX_LABEL_CHARS: usize = 24;
+
+fn collapse_label_space(value: &str) -> String {
+    let mut out = String::new();
+    let mut pending_space = false;
+    for ch in value.trim().chars() {
+        if ch.is_whitespace() {
+            pending_space = !out.is_empty();
+            continue;
+        }
+        if pending_space {
+            out.push(' ');
+            pending_space = false;
+        }
+        out.push(ch);
+    }
+    out
+}
+
+fn label_char_allowed(ch: char) -> bool {
+    ch == ' ' || ch == '-' || ch.is_alphanumeric()
+}
+
+/// Trim, collapse spaces, drop empties, and keep the first spelling of a case-insensitive duplicate.
+/// Rejects anything that would not be stored, without changing the caller's project.
+pub fn normalize_labels(input: &[String]) -> Result<Vec<String>, String> {
+    let mut labels = Vec::new();
+    for raw in input {
+        let label = collapse_label_space(raw);
+        if label.is_empty() {
+            continue;
+        }
+        if label.chars().count() > MAX_LABEL_CHARS {
+            return Err(format!("Label \"{label}\" is longer than {MAX_LABEL_CHARS} characters"));
+        }
+        if !label.chars().all(label_char_allowed) {
+            return Err(format!(
+                "Label \"{label}\" can only use letters, numbers, spaces, hyphens, or CJK characters"
+            ));
+        }
+        if labels.iter().any(|existing: &String| existing.to_lowercase() == label.to_lowercase()) {
+            continue;
+        }
+        labels.push(label);
+        if labels.len() > MAX_LABELS {
+            return Err(format!("A project can have at most {MAX_LABELS} labels"));
+        }
+    }
+    Ok(labels)
+}
+
+/// Replace `project.labels` only when every label is valid. On error the stored list is unchanged.
+pub fn assign_labels(project: &mut Project, input: &[String]) -> Result<(), String> {
+    let next = normalize_labels(input)?;
+    project.labels = next;
+    Ok(())
 }
 
 // Overall project configuration state
@@ -306,5 +368,46 @@ mod tests {
             }
             other => panic!("unexpected action: {other:?}"),
         }
+    }
+
+    fn bare_project() -> Project {
+        serde_json::from_str(
+            r#"{"id":"p","name":"p","githubOwner":null,"githubRepo":null,"githubUrl":null,"localPath":null,"projectStatus":"not_configured","gitStatus":null,"createdAt":"2026-01-01T00:00:00Z","lastSynced":null}"#,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn labels_keep_the_first_spelling_and_reject_without_replacing() {
+        let mut project = bare_project();
+        project.labels = vec!["keep".to_string()];
+
+        let err = assign_labels(&mut project, &["bad!".to_string()]).unwrap_err();
+        assert!(err.contains("letters"), "{err}");
+        assert_eq!(project.labels, vec!["keep".to_string()]);
+
+        let err = assign_labels(&mut project, &["this label is definitely too long".to_string()]).unwrap_err();
+        assert!(err.contains("24"), "{err}");
+        assert_eq!(project.labels, vec!["keep".to_string()]);
+
+        assign_labels(
+            &mut project,
+            &[
+                "  Work  ".to_string(),
+                "work".to_string(),
+                "工作".to_string(),
+                "  ".to_string(),
+            ],
+        )
+        .unwrap();
+        assert_eq!(project.labels, vec!["Work".to_string(), "工作".to_string()]);
+    }
+
+    #[test]
+    fn nine_labels_are_rejected() {
+        let mut project = bare_project();
+        let input: Vec<String> = (0..9).map(|n| format!("l{n}")).collect();
+        assert!(assign_labels(&mut project, &input).is_err());
+        assert!(project.labels.is_empty());
     }
 }
