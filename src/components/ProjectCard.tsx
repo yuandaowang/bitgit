@@ -41,6 +41,9 @@ import {
   X,
   ExternalLink,
   History as HistoryIcon,
+  ArrowUp,
+  ArrowDown,
+  FileDiff,
 } from 'lucide-react';
 
 interface ProjectCardProps {
@@ -56,11 +59,27 @@ interface CardMenuItem {
   disabled?: boolean;
 }
 
-function SyncCount({ value, label, hot }: { value: number; label: string; hot: boolean }) {
+function SyncCount({
+  value,
+  tip,
+  hot,
+  icon: Icon,
+}: {
+  value: number;
+  tip: string;
+  hot: boolean;
+  icon: typeof ArrowUp;
+}) {
   return (
-    <span className={hot ? 'font-semibold text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'}>
-      <span className="tabular-nums">{value}</span> {label}
-    </span>
+    <IconTip tip={tip} align="center">
+      <span
+        aria-label={tip}
+        className={`inline-flex items-center gap-0.5 ${hot ? 'font-semibold text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'}`}
+      >
+        <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+        <span className="tabular-nums">{value}</span>
+      </span>
+    </IconTip>
   );
 }
 
@@ -83,13 +102,18 @@ function CompactSync({ project }: { project: Project }) {
       <span className="font-semibold font-mono text-gray-900 dark:text-white truncate">{branch}</span>
       {connected ? (
         <>
-          <SyncCount value={ahead} label="ahead" hot={ahead > 0} />
-          <SyncCount value={behind} label="behind" hot={behind > 0} />
+          <SyncCount value={ahead} tip={`${ahead} commit${ahead === 1 ? '' : 's'} ahead of GitHub`} hot={ahead > 0} icon={ArrowUp} />
+          <SyncCount value={behind} tip={`${behind} commit${behind === 1 ? '' : 's'} behind GitHub`} hot={behind > 0} icon={ArrowDown} />
         </>
       ) : (
         <span className="font-medium text-gray-500 dark:text-gray-400">未连接</span>
       )}
-      <SyncCount value={uncommitted} label="uncommitted" hot={uncommitted > 0} />
+      <SyncCount
+        value={uncommitted}
+        tip={`${uncommitted} uncommitted file${uncommitted === 1 ? '' : 's'}`}
+        hot={uncommitted > 0}
+        icon={FileDiff}
+      />
     </p>
   );
 }
