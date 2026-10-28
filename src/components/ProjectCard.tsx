@@ -102,8 +102,8 @@ function CompactSync({ project }: { project: Project }) {
       <span className="font-semibold font-mono text-gray-900 dark:text-white truncate">{branch}</span>
       {connected ? (
         <>
-          <SyncCount value={ahead} tip={`${ahead} commit${ahead === 1 ? '' : 's'} ahead of GitHub`} hot={ahead > 0} icon={ArrowUp} />
-          <SyncCount value={behind} tip={`${behind} commit${behind === 1 ? '' : 's'} behind GitHub`} hot={behind > 0} icon={ArrowDown} />
+          <SyncCount value={ahead} tip={`${ahead} commit${ahead === 1 ? '' : 's'} ahead of Remote`} hot={ahead > 0} icon={ArrowUp} />
+          <SyncCount value={behind} tip={`${behind} commit${behind === 1 ? '' : 's'} behind Remote`} hot={behind > 0} icon={ArrowDown} />
         </>
       ) : (
         <span className="font-medium text-gray-500 dark:text-gray-400">未连接</span>
