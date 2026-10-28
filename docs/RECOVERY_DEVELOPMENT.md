@@ -16,7 +16,7 @@ both sides on windows-2025, macos-15 and ubuntu-22.04. A Windows run proves noth
 side: say so when a change touches it.
 
 `npm run tauri:dev` starts Vite and the native app. Drive the affected workflow and inspect errors;
-a frontend build does not verify native IPC or filesystem effects. If port 5173 is occupied,
+a frontend build does not verify native IPC or filesystem effects. If port 5174 is occupied,
 identify its owning PID and close only the dev server belonging to this task. Do not kill every
 Node process; other projects and agent sessions may be running.
 
