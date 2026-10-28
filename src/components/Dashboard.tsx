@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '../stores/useAppStore';
 import { ProjectCard } from './ProjectCard';
@@ -62,6 +62,25 @@ export function Dashboard() {
   const isDarkMode = document.documentElement.classList.contains('dark');
   const ThemeIcon = isDarkMode ? Moon : Sun;
   const hasSelection = selectedProjectIds.size > 0;
+  const showDock = currentView === 'projects' && (hasSelection || bulk !== null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const [dockHeight, setDockHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const node = dockRef.current;
+    if (!node) {
+      setDockHeight((current) => (current === 0 ? current : 0));
+      return;
+    }
+    const update = () => {
+      const next = Math.ceil(node.getBoundingClientRect().height);
+      setDockHeight((current) => (current === next ? current : next));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [showDock, bulk, hasSelection]);
 
   // Filter and sort projects
   const filteredProjects = projects
@@ -470,15 +489,7 @@ export function Dashboard() {
 
       </div>
 
-      <main className={`container mx-auto px-8 pt-8 ${currentView === 'projects' && hasSelection ? 'pb-28' : 'pb-8'}`}>
-        {currentView === 'projects' && bulk && (
-          <BulkResultPanel
-            title={bulk.kind === 'full_sync' ? 'Bulk sync results' : 'Bulk push results'}
-            results={bulk.results}
-            onReview={handleReview}
-            onDismiss={() => setBulk(null)}
-          />
-        )}
+      <main className="container mx-auto px-8 pt-8" style={{ paddingBottom: Math.max(32, dockHeight + 16) }}>
         {/* Conditionally render Analytics Dashboard or Projects List */}
         {currentView === 'analytics' ? (
           <AnalyticsDashboard />
@@ -526,9 +537,20 @@ export function Dashboard() {
         onClose={() => setIsAddProjectOpen(false)}
       />
 
-      {currentView === 'projects' && hasSelection && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30">
-          <div className="container mx-auto px-8 pb-6">
+      {showDock && (
+        <div ref={dockRef} className="pointer-events-none fixed inset-x-0 bottom-0 z-30">
+          <div className="container mx-auto flex flex-col gap-3 px-8 pb-6">
+            {bulk && (
+              <div className="pointer-events-auto animate-rise-in motion-reduce:animate-none">
+                <BulkResultPanel
+                  title={bulk.kind === 'full_sync' ? 'Bulk sync results' : 'Bulk push results'}
+                  results={bulk.results}
+                  onReview={handleReview}
+                  onDismiss={() => setBulk(null)}
+                />
+              </div>
+            )}
+            {hasSelection && (
             <div
               role="region"
               aria-label="Selected projects"
@@ -578,6 +600,7 @@ export function Dashboard() {
                 </button>
               </div>
             </div>
+            )}
           </div>
         </div>
       )}

@@ -33,15 +33,15 @@ export function BulkResultPanel({ title, results, onReview, onDismiss }: BulkRes
     <section
       aria-label="Batch results"
       data-testid="bulk-results"
-      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4"
+      className="flex max-h-[min(40vh,24rem)] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
         <h2 className="font-semibold text-gray-900 dark:text-white">{title}</h2>
         <button onClick={onDismiss} aria-label="Dismiss batch results" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
           <X className="w-4 h-4" />
         </button>
       </div>
-      <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+      <ul className="divide-y divide-gray-100 overflow-auto px-4 pb-2 dark:divide-gray-700">
         {results.map((result) => (
           <li
             key={result.projectId}
