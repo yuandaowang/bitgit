@@ -205,11 +205,13 @@ export function Dashboard() {
         return;
       }
 
-      // Mod+F: Focus search (only if not already in an input)
+      // Mod+F: Focus search. The box itself reopens history when it already has focus.
       if (modKey && e.key === 'f' && !isInputField) {
         e.preventDefault();
-        const searchInput = document.getElementById('project-search') as HTMLInputElement | null;
-        searchInput?.focus();
+        if (currentView !== 'projects') setCurrentView('projects');
+        requestAnimationFrame(() => {
+          document.getElementById('project-search')?.focus();
+        });
         return;
       }
 
@@ -236,11 +238,21 @@ export function Dashboard() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleRefreshAll, projects.length, hasSelection, selectAll, clearSelection, toggleTheme]);
+  }, [handleRefreshAll, projects.length, hasSelection, selectAll, clearSelection, toggleTheme, currentView]);
 
   const catalog = labelCatalog(projects);
+  const catalogKey = catalog.map((item) => item.name.toLowerCase()).join('\n');
+  // A label removed from every project leaves the catalog, so it must leave the filter too.
+  useEffect(() => {
+    const names = new Set(catalogKey ? catalogKey.split('\n') : []);
+    setSelectedLabels((current) => {
+      const next = current.filter((label) => names.has(label.toLowerCase()));
+      return next.length === current.length ? current : next;
+    });
+  }, [catalogKey]);
+
   const boardClass = layout === 'list'
-    ? density === 'simple' ? 'space-y-2' : 'space-y-4'
+    ? 'space-y-4'
     : density === 'simple'
       ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'
       : 'grid grid-cols-1 xl:grid-cols-2 gap-4';

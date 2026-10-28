@@ -1,6 +1,6 @@
 # 看板密度、标签与搜索历史
 
-Status: 未开始。分支 `dev-ui-optimize`，基线 `main` @ `12d0095`（Prepare 1.2.1，已与 `origin/main` 对齐）。后续实现都在该分支上提交，不推送，除非另有要求。
+Status: 四段已在 `dev-ui-optimize` 实现（`cc217f1`、`ead037b`、`247f39d`、`03ee5af`）。审计补丁另计。基线 `main` @ `12d0095`。不推送，除非另有要求。
 
 本计划只覆盖看板项目列表。Analytics 视图、恢复工作区、发布和凭据流程保持原样。
 

@@ -19,7 +19,6 @@ export function ProjectSearchBox({ value, onChange, placeholder }: ProjectSearch
   const inputRef = useRef<HTMLInputElement>(null);
   const [history, setHistory] = useState<string[]>(() => readSearchHistory());
   const historyRef = useRef(history);
-  historyRef.current = history;
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const items = matchingHistory(history, value);
@@ -77,7 +76,13 @@ export function ProjectSearchBox({ value, onChange, placeholder }: ProjectSearch
         onFocus={() => setOpen(true)}
         onBlur={() => commit(value)}
         onKeyDown={(event) => {
+          if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') {
+            event.preventDefault();
+            setOpen(true);
+            return;
+          }
           if (event.key === 'Escape') {
+            if (open) event.stopPropagation();
             setOpen(false);
             return;
           }
@@ -87,10 +92,10 @@ export function ProjectSearchBox({ value, onChange, placeholder }: ProjectSearch
           }
           if (event.key === 'ArrowDown') {
             event.preventDefault();
-            setHighlight((index) => (index + 1) % items.length);
+            setHighlight((active + 1) % items.length);
           } else if (event.key === 'ArrowUp') {
             event.preventDefault();
-            setHighlight((index) => (index - 1 + items.length) % items.length);
+            setHighlight((active - 1 + items.length) % items.length);
           } else if (event.key === 'Enter') {
             event.preventDefault();
             apply(items[active] ?? value);

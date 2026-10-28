@@ -1018,9 +1018,8 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
           </div>
         </div>
 
-        <ProjectLabels project={project} catalog={labelCatalog} compact />
-
-        <div className="mt-2 space-y-1 min-w-0">
+        <div className="mt-2 space-y-2 min-w-0">
+          <ProjectLabels project={project} catalog={labelCatalog} compact />
           {identity && (
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={identity}>{identity}</p>
           )}
