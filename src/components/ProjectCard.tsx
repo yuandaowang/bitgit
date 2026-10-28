@@ -747,7 +747,6 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{project.name}</h3>
-              {isFavorite && <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />}
               {isArchived && <Archive className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400" data-testid="status-text">{cardStatus.text}</p>
