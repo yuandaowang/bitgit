@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Project, PublishAction, SyncAction, SyncResult, FileChangeInfo, PreSyncValidation } from '../types';
 import { useAppStore, describeSyncResult, syncMovedData, syncActionLabel } from '../stores/useAppStore';
 import { invoke } from '@tauri-apps/api/tauri';
@@ -83,6 +83,22 @@ const NOTICE_STYLE: Record<NoticeTone, string> = {
 
 const errorText = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
+
+// Native title tips do not appear in the macOS window, so icon buttons draw their own.
+function IconTip({ tip, children, align = 'end' }: { tip: string; align?: 'end' | 'center'; children: ReactNode }) {
+  const position = align === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0';
+  return (
+    <span className="relative inline-flex group/tip">
+      {children}
+      <span
+        role="tooltip"
+        className={`pointer-events-none absolute top-full ${position} z-30 mt-1.5 hidden whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white shadow-lg group-hover/tip:block group-focus-within/tip:block dark:bg-gray-100 dark:text-gray-900`}
+      >
+        {tip}
+      </span>
+    </span>
+  );
+}
 
 export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: ProjectCardProps) {
   const {
@@ -944,48 +960,65 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
             </div>
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">
-            <button
-              onClick={handleToggleFavorite}
-              className={`p-1.5 rounded-lg transition-colors ${
-                isFavorite
-                  ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
-                  : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-              }`}
-              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-            </button>
-            {project.localPath && (
+            <IconTip tip={isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
               <button
-                onClick={() => setShowRecovery(true)}
-                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title="Save versions of this project, compare them and recover files"
-                aria-label="Save & Recover"
+                onClick={handleToggleFavorite}
+                aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  isFavorite
+                    ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                }`}
               >
-                <HistoryIcon className="w-4 h-4" />
+                <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
               </button>
+            </IconTip>
+            {project.localPath && (
+              <IconTip tip="Save versions of this project and recover files">
+                <button
+                  onClick={() => setShowRecovery(true)}
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  aria-label="Save & Recover"
+                >
+                  <HistoryIcon className="w-4 h-4" />
+                </button>
+              </IconTip>
             )}
             {project.localPath && (
-              <button
-                onClick={handleRefreshStatus}
-                disabled={isRefreshing || syncingProjects.has(project.id)}
-                aria-label="Refresh status"
-                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
-                title="Refresh status: re-reads this folder and checks GitHub"
-              >
-                <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
+              <IconTip tip="Refresh this project's Git status">
+                <button
+                  onClick={handleRefreshStatus}
+                  disabled={isRefreshing || syncingProjects.has(project.id)}
+                  aria-label="Refresh status"
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
+              </IconTip>
             )}
             <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setMenuOpen((open) => !open)}
-                aria-label="More actions"
-                aria-expanded={menuOpen}
-                title="More actions"
-                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
+              {!menuOpen && (
+                <IconTip tip="More actions">
+                  <button
+                    onClick={() => setMenuOpen(true)}
+                    aria-label="More actions"
+                    aria-expanded={false}
+                    className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </IconTip>
+              )}
+              {menuOpen && (
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  aria-label="More actions"
+                  aria-expanded
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              )}
               {menuOpen && (
                 <div
                   role="menu"
@@ -1008,13 +1041,15 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
                 </div>
               )}
             </div>
-            <button
-              onClick={handleDelete}
-              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
-              title="Delete project"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <IconTip tip="Delete this project from BitGit">
+              <button
+                onClick={handleDelete}
+                aria-label="Delete project"
+                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </IconTip>
           </div>
         </div>
 
@@ -1075,18 +1110,19 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400" data-testid="status-text">{cardStatus.text}</p>
           </div>
-          {/* Favorite button */}
-          <button
-            onClick={handleToggleFavorite}
-            className={`p-1.5 rounded-lg transition-colors ${
-              isFavorite
-                ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
-                : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-            }`}
-            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          >
-            <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-          </button>
+          <IconTip tip={isFavorite ? 'Remove from favorites' : 'Add to favorites'} align="center">
+            <button
+              onClick={handleToggleFavorite}
+              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              className={`p-1.5 rounded-lg transition-colors ${
+                isFavorite
+                  ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+              }`}
+            >
+              <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+            </button>
+          </IconTip>
 
           {/* Save & Recover - available for every project with a local folder */}
           {project.localPath && (
@@ -1102,24 +1138,27 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
 
           {/* Refresh - any project with a local folder, GitHub link or not */}
           {project.localPath && (
-            <button
-              onClick={handleRefreshStatus}
-              disabled={isRefreshing || syncingProjects.has(project.id)}
-              aria-label="Refresh status"
-              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
-              title="Refresh status: re-reads this folder and checks GitHub"
-            >
-              <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </button>
+            <IconTip tip="Refresh this project's Git status" align="center">
+              <button
+                onClick={handleRefreshStatus}
+                disabled={isRefreshing || syncingProjects.has(project.id)}
+                aria-label="Refresh status"
+                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </IconTip>
           )}
         </div>
-        <button
-          onClick={handleDelete}
-          className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-          title="Delete project"
-        >
-          <Trash2 className="w-5 h-5" />
-        </button>
+        <IconTip tip="Delete this project from BitGit">
+          <button
+            onClick={handleDelete}
+            aria-label="Delete project"
+            className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </IconTip>
       </div>
 
       {/* Description Section */}
