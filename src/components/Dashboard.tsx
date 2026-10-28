@@ -313,7 +313,7 @@ export function Dashboard() {
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">BitGit</h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {currentView === 'projects'
-                    ? `${filteredProjects.length} of ${projects.length} projects${selectedProjectIds.size > 0 ? ` • ${selectedProjectIds.size} selected` : ''}`
+                    ? `${filteredProjects.length} of ${projects.length} projects`
                     : 'Insights & Analytics'
                   }
                 </p>
