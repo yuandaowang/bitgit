@@ -1018,18 +1018,20 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
               onChange={() => toggleSelection(project.id)}
               className="mt-1 w-4 h-4 text-teal-600 rounded focus:ring-2 focus:ring-teal-500"
             />
-            {getStatusIcon()}
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <h3
-                  className="font-semibold text-gray-900 dark:text-white truncate"
-                  title={project.description || project.name}
-                >
-                  {project.name}
-                </h3>
-                {isArchived && <Archive className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500" />}
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="inline-flex shrink-0">{getStatusIcon()}</span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h3
+                    className="font-semibold text-gray-900 dark:text-white truncate"
+                    title={project.description || project.name}
+                  >
+                    {project.name}
+                  </h3>
+                  {isArchived && <Archive className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500" />}
+                </div>
+                <StatusLabel project={project} cardStatus={cardStatus} compact />
               </div>
-              <StatusLabel project={project} cardStatus={cardStatus} compact />
             </div>
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -1166,20 +1168,22 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <input
             type="checkbox"
             checked={isSelected}
             onChange={() => toggleSelection(project.id)}
             className="w-4 h-4 text-teal-600 rounded focus:ring-2 focus:ring-teal-500"
           />
-          {getStatusIcon()}
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{project.name}</h3>
-              {isArchived && <Archive className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="inline-flex shrink-0">{getStatusIcon()}</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-white truncate">{project.name}</h3>
+                {isArchived && <Archive className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500" />}
+              </div>
+              <StatusLabel project={project} cardStatus={cardStatus} />
             </div>
-            <StatusLabel project={project} cardStatus={cardStatus} />
           </div>
           <IconTip tip={isFavorite ? 'Remove from favorites' : 'Add to favorites'} align="center">
             <button
