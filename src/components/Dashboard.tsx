@@ -7,11 +7,20 @@ import { AddProjectModal } from './AddProjectModal';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { BulkResultPanel } from './git/BulkResultPanel';
 import type { BulkProjectResult, PublishAction } from '../types';
+import { readDashboardView, writeDashboardView, type BoardDensity, type BoardLayout } from '../lib/dashboardView';
 import { Plus, RefreshCw, Settings, Sun, Moon, CheckSquare, Square, Upload, Search, Filter, BarChart3, FolderGit2 } from 'lucide-react';
 
 // Shortcuts take Ctrl everywhere and also ⌘ on macOS, where hints show ⌘.
 const IS_MAC = navigator.userAgent.includes('Mac');
 const MOD = IS_MAC ? '⌘' : 'Ctrl+';
+
+function segmentClass(active: boolean) {
+  return `px-3 py-1.5 rounded-md text-sm transition-colors ${
+    active
+      ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+  }`;
+}
 
 export function Dashboard() {
   const {
@@ -42,6 +51,8 @@ export function Dashboard() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'favorite' | 'activity'>('favorite');
   const [currentView, setCurrentView] = useState<'projects' | 'analytics'>('projects');
+  const [density, setDensity] = useState<BoardDensity>(() => readDashboardView().density);
+  const [layout, setLayout] = useState<BoardLayout>(() => readDashboardView().layout);
 
   // Check actual dark mode state from document class, not just settings
   const isDarkMode = document.documentElement.classList.contains('dark');
@@ -148,6 +159,10 @@ export function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only load once on mount
 
+  useEffect(() => {
+    writeDashboardView({ density, layout });
+  }, [density, layout]);
+
   // Update background checking when refresh interval changes
   useEffect(() => {
     if (settings.ui.refreshInterval > 0) {
@@ -213,6 +228,12 @@ export function Dashboard() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleRefreshAll, projects.length, hasSelection, selectAll, clearSelection, toggleTheme]);
+
+  const boardClass = layout === 'list'
+    ? density === 'simple' ? 'space-y-2' : 'space-y-4'
+    : density === 'simple'
+      ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'
+      : 'grid grid-cols-1 xl:grid-cols-2 gap-4';
 
   if (isLoading) {
     return (
@@ -343,13 +364,14 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Search and Filter Bar - Only show for projects view */}
+      {/* Search, filters, density and layout. The batch bar sticks with this block. */}
+      <div className="sticky top-16 z-10">
       {currentView === 'projects' && (
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-16 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-8 py-4">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             {/* Search Box */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-w-[220px]">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
@@ -416,6 +438,15 @@ export function Dashboard() {
               <option value="activity">Sort: Recent Activity</option>
               <option value="name">Sort: Name (A-Z)</option>
             </select>
+
+            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1" role="group" aria-label="Card density">
+              <button type="button" aria-pressed={density === 'detail'} onClick={() => setDensity('detail')} className={segmentClass(density === 'detail')}>Detail</button>
+              <button type="button" aria-pressed={density === 'simple'} onClick={() => setDensity('simple')} className={segmentClass(density === 'simple')}>Simple</button>
+            </div>
+            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1" role="group" aria-label="Board layout">
+              <button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')} className={segmentClass(layout === 'list')}>List</button>
+              <button type="button" aria-pressed={layout === 'grid'} onClick={() => setLayout('grid')} className={segmentClass(layout === 'grid')}>Grid</button>
+            </div>
           </div>
         </div>
       </div>
@@ -423,7 +454,7 @@ export function Dashboard() {
 
       {/* Batch Operations Toolbar - Only show for projects view */}
       {currentView === 'projects' && hasSelection && (
-        <div className="bg-teal-50 dark:bg-teal-900/20 border-b border-teal-200 dark:border-teal-800 sticky top-[136px] z-10">
+        <div className="bg-teal-50 dark:bg-teal-900/20 border-b border-teal-200 dark:border-teal-800">
           <div className="container mx-auto px-8 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -473,6 +504,7 @@ export function Dashboard() {
           </div>
         </div>
       )}
+      </div>
 
       <main className="container mx-auto px-8 py-8">
         {currentView === 'projects' && bulk && (
@@ -510,9 +542,9 @@ export function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className={boardClass} data-layout={layout} data-density={density}>
             {filteredProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
+              <ProjectCard key={project.id} project={project} density={density} />
             ))}
           </div>
         )}

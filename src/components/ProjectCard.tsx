@@ -32,6 +32,7 @@ import {
   RotateCw,
   ChevronDown,
   ChevronUp,
+  MoreHorizontal,
   Star,
   Archive,
   Edit2,
@@ -43,6 +44,24 @@ import {
 
 interface ProjectCardProps {
   project: Project;
+  density?: 'detail' | 'simple';
+}
+
+interface CardMenuItem {
+  id: string;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+// One line for the compact card: branch plus ahead/behind, or that GitHub is not connected.
+function compactSyncLine(project: Project): string | null {
+  const git = project.gitStatus;
+  if (!git) return null;
+  if (!git.isGitRepo) return '未连接';
+  const branch = git.currentBranch ?? 'detached';
+  if (!git.hasRemote || !git.upstream) return `${branch} · 未连接`;
+  return `${branch} · ${git.unpushedCommits} ahead, ${git.behindCommits ?? 0} behind`;
 }
 
 type NoticeTone = 'success' | 'neutral' | 'error';
@@ -63,7 +82,7 @@ const NOTICE_STYLE: Record<NoticeTone, string> = {
 const errorText = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, density = 'detail' }: ProjectCardProps) {
   const {
     syncProject,
     toggleSelection,
@@ -93,7 +112,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const isSelected = selectedProjectIds.has(project.id);
   const isFavorite = project.favorite || false;
@@ -264,6 +285,22 @@ export function ProjectCard({ project }: ProjectCardProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviewRequest]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   const handleDelete = async () => {
     // Show confirmation dialog BEFORE doing anything
@@ -727,11 +764,298 @@ export function ProjectCard({ project }: ProjectCardProps) {
     }
   };
 
+  // Same actions as the text row, reached from one menu so the compact card stays short.
+  const simpleMenuItems = (): CardMenuItem[] => {
+    const items: CardMenuItem[] = [];
+    const archive = () =>
+      items.push({
+        id: 'archive',
+        label: isArchived ? 'Restore' : 'Archive',
+        onClick: () => void handleToggleArchive(),
+      });
+    const details = () => {
+      if (!canShowDetails) return;
+      items.push({
+        id: 'details',
+        label: showDetails ? 'Hide Details' : 'Details',
+        onClick: () => setShowDetails(!showDetails),
+      });
+    };
+
+    switch (project.projectStatus) {
+      case 'not_configured':
+        items.push(
+          { id: 'link-github', label: 'Link GitHub', onClick: () => setShowLinkGitHubModal(true) },
+          { id: 'link-local', label: 'Link Local', onClick: () => setShowLinkLocalModal(true) },
+        );
+        archive();
+        break;
+      case 'github_only':
+        items.push(
+          { id: 'clone', label: 'Clone to Local', onClick: () => void handleCloneToLocal(), disabled: isLoading },
+          { id: 'link-local', label: 'Link Existing Local', onClick: () => setShowLinkLocalModal(true) },
+        );
+        archive();
+        break;
+      case 'local_only':
+        items.push(
+          { id: 'create-github', label: 'Create GitHub Repo', onClick: () => void handleCreateGitHubRepoClick(), disabled: isLoading },
+          { id: 'link-github', label: 'Link Existing GitHub', onClick: () => setShowLinkGitHubModal(true) },
+        );
+        details();
+        archive();
+        break;
+      default: {
+        const hasLocalChanges = project.gitStatus && (project.gitStatus.uncommittedFiles > 0 || project.gitStatus.unpushedCommits > 0);
+        const hasRemoteBranches = project.gitStatus && project.gitStatus.remoteBranches.length > 0;
+        const notGit = project.gitStatus?.isGitRepo === false;
+        const editorName = settings.ui.editor.preset === 'custom'
+          ? 'Editor'
+          : settings.ui.editor.preset.charAt(0).toUpperCase() + settings.ui.editor.preset.slice(1);
+        items.push(
+          {
+            id: 'push',
+            label: 'Push Local',
+            onClick: () => void startPublish('push_local'),
+            disabled: notGit || (project.gitStatus !== null && !hasLocalChanges) || isBusy,
+          },
+          {
+            id: 'pull',
+            label: 'Pull Updates',
+            onClick: () => setIntegrationMode('pull_branches'),
+            disabled: notGit || !hasRemoteBranches || isBusy,
+          },
+          {
+            id: 'merge',
+            label: 'Merge Branches',
+            onClick: () => setIntegrationMode('merge_branches'),
+            disabled: notGit || !hasRemoteBranches || isBusy,
+          },
+          {
+            id: 'sync',
+            label: 'Sync Branch',
+            onClick: () => void startPublish('full_sync'),
+            disabled: notGit || isBusy,
+          },
+          { id: 'editor', label: `Open in ${editorName}`, onClick: () => void handleOpenInEditor() },
+        );
+        details();
+        archive();
+      }
+    }
+    return items;
+  };
+
+  const overlays = (
+    <>
+      {showRecovery && project.localPath && <RecoveryWorkspace project={project} onClose={() => setShowRecovery(false)} />}
+      <LinkLocalModal
+        isOpen={showLinkLocalModal}
+        onClose={() => setShowLinkLocalModal(false)}
+        onLink={handleLinkLocal}
+        projectName={project.name}
+      />
+      <LinkGitHubModal
+        isOpen={showLinkGitHubModal}
+        onClose={() => setShowLinkGitHubModal(false)}
+        onLink={handleLinkGitHub}
+        projectName={project.name}
+      />
+      <CreateRepoModal
+        isOpen={showCreateRepoModal}
+        onClose={() => setShowCreateRepoModal(false)}
+        onCreate={handleCreateGitHubRepo}
+        projectName={project.name}
+      />
+      {project.localPath && (
+        <CommitModal
+          isOpen={commitKind !== null}
+          onClose={() => setCommitKind(null)}
+          onSubmit={handleModalSubmit}
+          repoPath={project.localPath}
+          projectName={project.name}
+          mode={commitKind ?? 'push_local'}
+          isLoading={isCommitting}
+          submitError={submitError}
+          reloadSignal={reloadSignal}
+        />
+      )}
+      {pending && (
+        <ValidationWarningModal
+          isOpen
+          onClose={() => setPending(null)}
+          onProceed={handleProceedWithWarnings}
+          onGitignoreUpdated={handleGitignoreUpdated}
+          validation={pending.validation}
+          projectId={project.id}
+          isBusy={isCommitting}
+        />
+      )}
+      <BranchIntegrationModal
+        isOpen={integrationMode !== null}
+        mode={integrationMode ?? 'merge_branches'}
+        projectName={project.name}
+        currentBranch={project.gitStatus?.currentBranch}
+        branches={project.gitStatus?.remoteBranches ?? []}
+        checkedAt={project.gitStatus?.remoteCheckedAt}
+        isLoading={isCommitting}
+        onConfirm={handleIntegrate}
+        onClose={() => setIntegrationMode(null)}
+      />
+    </>
+  );
+
+  if (density === 'simple') {
+    const identity = project.localPath
+      ?? (project.githubOwner && project.githubRepo ? `${project.githubOwner}/${project.githubRepo}` : null);
+    const syncLine = compactSyncLine(project);
+    const menuItems = simpleMenuItems();
+
+    return (
+      <div
+        ref={cardRef}
+        data-testid="project-card"
+        data-project={project.name}
+        data-density="simple"
+        className={`min-w-0 bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 ${TONE_BORDER[cardStatus.tone]} p-3 transition-all hover:shadow-md dark:hover:shadow-lg`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2 min-w-0">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => toggleSelection(project.id)}
+              className="mt-1 w-4 h-4 text-teal-600 rounded focus:ring-2 focus:ring-teal-500"
+            />
+            {getStatusIcon()}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h3
+                  className="font-semibold text-gray-900 dark:text-white truncate"
+                  title={project.description || project.name}
+                >
+                  {project.name}
+                </h3>
+                {isArchived && <Archive className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500" />}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate" data-testid="status-text">{cardStatus.text}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            <button
+              onClick={handleToggleFavorite}
+              className={`p-1.5 rounded-lg transition-colors ${
+                isFavorite
+                  ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+              }`}
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+            </button>
+            {project.localPath && (
+              <button
+                onClick={() => setShowRecovery(true)}
+                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Save versions of this project, compare them and recover files"
+                aria-label="Save & Recover"
+              >
+                <HistoryIcon className="w-4 h-4" />
+              </button>
+            )}
+            {project.localPath && (
+              <button
+                onClick={handleRefreshStatus}
+                disabled={isRefreshing || syncingProjects.has(project.id)}
+                aria-label="Refresh status"
+                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                title="Refresh status: re-reads this folder and checks GitHub"
+              >
+                <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            )}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-label="More actions"
+                aria-expanded={menuOpen}
+                title="More actions"
+                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-20 mt-1 w-52 max-w-[70vw] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg py-1"
+                >
+                  {menuItems.map((item) => (
+                    <button
+                      key={item.id}
+                      role="menuitem"
+                      disabled={item.disabled}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        item.onClick();
+                      }}
+                      className="block w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleDelete}
+              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
+              title="Delete project"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Labels from the next step mount here. */}
+        <div data-testid="project-labels-slot" className="empty:hidden" />
+
+        <div className="mt-2 space-y-1 min-w-0">
+          {identity && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={identity}>{identity}</p>
+          )}
+          {syncLine && (
+            <p className="text-xs text-gray-600 dark:text-gray-300 truncate" data-testid="compact-sync">{syncLine}</p>
+          )}
+        </div>
+
+        {notice && (
+          <div
+            className={`mt-2 flex items-start justify-between gap-2 rounded-lg border p-2 text-xs ${NOTICE_STYLE[notice.tone]}`}
+            role={notice.tone === 'error' ? 'alert' : 'status'}
+            data-testid="card-notice"
+            data-tone={notice.tone}
+          >
+            <p className="min-w-0 break-words">{notice.title}</p>
+            <button onClick={() => setNotice(null)} aria-label="Dismiss message" className="flex-shrink-0 opacity-70 hover:opacity-100">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+
+        {showDetails && canShowDetails && (
+          <ProjectDetails project={project} onClose={() => setShowDetails(false)} />
+        )}
+        {overlays}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={cardRef}
       data-testid="project-card"
       data-project={project.name}
+      data-density="detail"
       className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 ${TONE_BORDER[cardStatus.tone]} p-6 transition-all hover:shadow-md dark:hover:shadow-lg`}
     >
       {/* Header */}
@@ -927,61 +1251,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <ProjectDetails project={project} onClose={() => setShowDetails(false)} />
       )}
 
-      {/* Modals */}
-      {showRecovery && project.localPath && <RecoveryWorkspace project={project} onClose={() => setShowRecovery(false)} />}
-      <LinkLocalModal
-        isOpen={showLinkLocalModal}
-        onClose={() => setShowLinkLocalModal(false)}
-        onLink={handleLinkLocal}
-        projectName={project.name}
-      />
-      <LinkGitHubModal
-        isOpen={showLinkGitHubModal}
-        onClose={() => setShowLinkGitHubModal(false)}
-        onLink={handleLinkGitHub}
-        projectName={project.name}
-      />
-      <CreateRepoModal
-        isOpen={showCreateRepoModal}
-        onClose={() => setShowCreateRepoModal(false)}
-        onCreate={handleCreateGitHubRepo}
-        projectName={project.name}
-      />
-      {project.localPath && (
-        <CommitModal
-          isOpen={commitKind !== null}
-          onClose={() => setCommitKind(null)}
-          onSubmit={handleModalSubmit}
-          repoPath={project.localPath}
-          projectName={project.name}
-          mode={commitKind ?? 'push_local'}
-          isLoading={isCommitting}
-          submitError={submitError}
-          reloadSignal={reloadSignal}
-        />
-      )}
-      {pending && (
-        <ValidationWarningModal
-          isOpen
-          onClose={() => setPending(null)}
-          onProceed={handleProceedWithWarnings}
-          onGitignoreUpdated={handleGitignoreUpdated}
-          validation={pending.validation}
-          projectId={project.id}
-          isBusy={isCommitting}
-        />
-      )}
-      <BranchIntegrationModal
-        isOpen={integrationMode !== null}
-        mode={integrationMode ?? 'merge_branches'}
-        projectName={project.name}
-        currentBranch={project.gitStatus?.currentBranch}
-        branches={project.gitStatus?.remoteBranches ?? []}
-        checkedAt={project.gitStatus?.remoteCheckedAt}
-        isLoading={isCommitting}
-        onConfirm={handleIntegrate}
-        onClose={() => setIntegrationMode(null)}
-      />
+      {overlays}
     </div>
   );
 }
