@@ -666,6 +666,123 @@ pub async fn open_in_editor(
     execute_editor_command(&command, &args)
 }
 
+/// Open the project folder in a terminal. The path is passed as an argument, never through a shell.
+#[tauri::command]
+pub async fn open_in_terminal(path: String) -> Result<(), String> {
+    let path = canonical_directory(&path)?;
+    spawn_terminal(&path)
+}
+
+fn canonical_directory(path: &str) -> Result<String, String> {
+    use std::path::Path;
+
+    if path.contains("..") || path.chars().any(char::is_control) {
+        return Err("Invalid path".to_string());
+    }
+
+    let path_obj = Path::new(path);
+    if !path_obj.exists() {
+        return Err(format!("Path does not exist: {}", path));
+    }
+    if !path_obj.is_dir() {
+        return Err(format!("Path is not a directory: {}", path));
+    }
+
+    let canonical = path_obj
+        .canonicalize()
+        .map_err(|e| format!("Failed to resolve path: {}", e))?;
+    let path_str = canonical.to_string_lossy().to_string();
+
+    #[cfg(target_os = "windows")]
+    let path_str = path_str
+        .strip_prefix(r"\\?\")
+        .map(str::to_string)
+        .unwrap_or(path_str);
+
+    Ok(path_str)
+}
+
+fn spawn_terminal(path: &str) -> Result<(), String> {
+    use std::process::Command;
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .args(["-a", "Terminal", path])
+            .spawn()
+            .map_err(|e| format!("Failed to open Terminal: {}", e))?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        return spawn_windows_terminal(path);
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        return spawn_unix_terminal(path);
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn spawn_windows_terminal(path: &str) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    use std::process::Command;
+
+    const CREATE_NEW_CONSOLE: u32 = 0x00000010;
+    if resolve_command("wt").is_some() {
+        Command::new("wt")
+            .args(["-d", path])
+            .spawn()
+            .map_err(|e| format!("Failed to open Windows Terminal: {}", e))?;
+        return Ok(());
+    }
+
+    Command::new("cmd")
+        .current_dir(path)
+        .creation_flags(CREATE_NEW_CONSOLE)
+        .spawn()
+        .map_err(|e| format!("Failed to open Command Prompt: {}", e))?;
+    Ok(())
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn spawn_unix_terminal(path: &str) -> Result<(), String> {
+    use std::process::Command;
+
+    let attempts: &[(&str, &[&str])] = &[
+        ("gnome-terminal", &["--working-directory"]),
+        ("konsole", &["--workdir"]),
+        ("xfce4-terminal", &["--working-directory"]),
+        ("kitty", &["--directory"]),
+        ("alacritty", &["--working-directory"]),
+        ("wezterm", &["start", "--cwd"]),
+    ];
+    for (program, prefix) in attempts {
+        if resolve_command(program).is_none() {
+            continue;
+        }
+        let mut args: Vec<String> = prefix.iter().copied().map(str::to_string).collect();
+        args.push(path.to_string());
+        Command::new(program)
+            .args(&args)
+            .spawn()
+            .map_err(|e| format!("Failed to open {}: {}", program, e))?;
+        return Ok(());
+    }
+
+    if resolve_command("x-terminal-emulator").is_some() {
+        Command::new("x-terminal-emulator")
+            .current_dir(path)
+            .spawn()
+            .map_err(|e| format!("Failed to open a terminal: {}", e))?;
+        return Ok(());
+    }
+
+    Err("No terminal program was found.".to_string())
+}
+
 /// Save editor settings
 #[tauri::command]
 pub async fn save_editor_settings(

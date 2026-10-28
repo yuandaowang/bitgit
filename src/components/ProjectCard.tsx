@@ -45,6 +45,7 @@ import {
   ArrowUp,
   ArrowDown,
   FileDiff,
+  Terminal,
 } from 'lucide-react';
 
 interface ProjectCardProps {
@@ -454,6 +455,18 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
   const handleCancelDescription = () => {
     setDescriptionText(project.description || '');
     setIsEditingDescription(false);
+  };
+
+  const handleOpenTerminal = async () => {
+    if (!project.localPath) {
+      toast.error('No local path configured');
+      return;
+    }
+    try {
+      await invoke('open_in_terminal', { path: project.localPath });
+    } catch (error: any) {
+      toast.error(`Failed to open terminal: ${error}`);
+    }
   };
 
   const handleOpenInEditor = async () => {
@@ -1131,7 +1144,25 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
           {identity && (
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={identity}>{identity}</p>
           )}
-          <CompactSync project={project} />
+          {project.localPath ? (
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <div className="min-w-0 flex-1">
+                <CompactSync project={project} />
+              </div>
+              <IconTip tip="Open a terminal in this project">
+                <button
+                  type="button"
+                  onClick={() => void handleOpenTerminal()}
+                  aria-label="Open terminal"
+                  className="flex-shrink-0 p-1 text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <Terminal className="w-4 h-4" />
+                </button>
+              </IconTip>
+            </div>
+          ) : (
+            <CompactSync project={project} />
+          )}
         </div>
 
         {notice && (

@@ -72,6 +72,7 @@ fn main() {
             check_project_status,
             // Project actions
             open_in_editor,
+            open_in_terminal,
             detect_installed_editors,
             save_editor_settings,
             load_editor_settings,
