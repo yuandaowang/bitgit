@@ -56,14 +56,42 @@ interface CardMenuItem {
   disabled?: boolean;
 }
 
-// One line for the compact card: branch plus ahead/behind, or that GitHub is not connected.
-function compactSyncLine(project: Project): string | null {
+function SyncCount({ value, label, hot }: { value: number; label: string; hot: boolean }) {
+  return (
+    <span className={hot ? 'font-semibold text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'}>
+      <span className="tabular-nums">{value}</span> {label}
+    </span>
+  );
+}
+
+// Branch, ahead/behind and uncommitted files. Quiet when zero, emphasized when there is something to do.
+function CompactSync({ project }: { project: Project }) {
   const git = project.gitStatus;
   if (!git) return null;
-  if (!git.isGitRepo) return '未连接';
+  if (!git.isGitRepo) {
+    return <p className="text-sm font-medium text-gray-500 dark:text-gray-400" data-testid="compact-sync">未连接</p>;
+  }
+
   const branch = git.currentBranch ?? 'detached';
-  if (!git.hasRemote || !git.upstream) return `${branch} · 未连接`;
-  return `${branch} · ${git.unpushedCommits} ahead, ${git.behindCommits ?? 0} behind`;
+  const ahead = git.unpushedCommits;
+  const behind = git.behindCommits ?? 0;
+  const uncommitted = git.uncommittedFiles;
+  const connected = Boolean(git.hasRemote && git.upstream);
+
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm min-w-0" data-testid="compact-sync">
+      <span className="font-semibold font-mono text-gray-900 dark:text-white truncate">{branch}</span>
+      {connected ? (
+        <>
+          <SyncCount value={ahead} label="ahead" hot={ahead > 0} />
+          <SyncCount value={behind} label="behind" hot={behind > 0} />
+        </>
+      ) : (
+        <span className="font-medium text-gray-500 dark:text-gray-400">未连接</span>
+      )}
+      <SyncCount value={uncommitted} label="uncommitted" hot={uncommitted > 0} />
+    </p>
+  );
 }
 
 type NoticeTone = 'success' | 'neutral' | 'error';
@@ -926,7 +954,6 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
   if (density === 'simple') {
     const identity = project.localPath
       ?? (project.githubOwner && project.githubRepo ? `${project.githubOwner}/${project.githubRepo}` : null);
-    const syncLine = compactSyncLine(project);
     const menuItems = simpleMenuItems();
 
     return (
@@ -1058,9 +1085,7 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
           {identity && (
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={identity}>{identity}</p>
           )}
-          {syncLine && (
-            <p className="text-xs text-gray-600 dark:text-gray-300 truncate" data-testid="compact-sync">{syncLine}</p>
-          )}
+          <CompactSync project={project} />
         </div>
 
         {notice && (
