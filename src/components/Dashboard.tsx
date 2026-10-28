@@ -386,7 +386,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Search, filters, density and layout. The batch bar sticks with this block. */}
+      {/* Search, filters, density and layout. */}
       <div className="sticky top-16 z-10">
       {currentView === 'projects' && (
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
@@ -471,61 +471,9 @@ export function Dashboard() {
       </div>
       )}
 
-      {/* Batch Operations Toolbar - Only show for projects view */}
-      {currentView === 'projects' && hasSelection && (
-        <div className="bg-teal-50 dark:bg-teal-900/20 border-b border-teal-200 dark:border-teal-800">
-          <div className="container mx-auto px-8 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-teal-900 dark:text-teal-100">
-                  {selectedProjectIds.size} project{selectedProjectIds.size !== 1 ? 's' : ''} selected
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={selectAll}
-                    className="text-sm px-3 py-1.5 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded transition-colors"
-                    title={`Select all projects (${MOD}A)`}
-                  >
-                    <CheckSquare className="w-4 h-4 inline mr-1" />
-                    Select All
-                  </button>
-                  <button
-                    onClick={clearSelection}
-                    className="text-sm px-3 py-1.5 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded transition-colors"
-                    title="Clear selection (Esc)"
-                  >
-                    <Square className="w-4 h-4 inline mr-1" />
-                    Clear
-                  </button>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => void handleBulk('push_local')}
-                  disabled={isBulkRunning}
-                  className="flex items-center gap-2 px-4 py-2 text-white bg-teal-600 dark:bg-teal-700 rounded-lg hover:bg-teal-700 dark:hover:bg-teal-800 transition-colors disabled:opacity-50"
-                  title="Push commits you already made. Projects with uncommitted changes are held back for you to review."
-                >
-                  <Upload className="w-4 h-4" />
-                  Bulk Push Commits
-                </button>
-                <button
-                  onClick={() => void handleBulk('full_sync')}
-                  disabled={isBulkRunning}
-                  className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors disabled:opacity-50"
-                  title="Sync each project's current branch with GitHub. Projects with uncommitted changes are held back for you to review."
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Bulk Sync Branches
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
 
-      <main className="container mx-auto px-8 py-8">
+      <main className={`container mx-auto px-8 pt-8 ${currentView === 'projects' && hasSelection ? 'pb-28' : 'pb-8'}`}>
         {currentView === 'projects' && bulk && (
           <BulkResultPanel
             title={bulk.kind === 'full_sync' ? 'Bulk sync results' : 'Bulk push results'}
@@ -580,6 +528,62 @@ export function Dashboard() {
         isOpen={isAddProjectOpen}
         onClose={() => setIsAddProjectOpen(false)}
       />
+
+      {currentView === 'projects' && hasSelection && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30">
+          <div className="container mx-auto px-8 pb-6">
+            <div
+              role="region"
+              aria-label="Selected projects"
+              className="pointer-events-auto flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 shadow-lg animate-rise-in motion-reduce:animate-none dark:border-teal-800 dark:bg-gray-800"
+            >
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="text-sm font-medium text-teal-900 dark:text-teal-100">
+                  {selectedProjectIds.size} project{selectedProjectIds.size !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={selectAll}
+                    className="text-sm px-3 py-1.5 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded transition-colors"
+                    title={`Select all projects (${MOD}A)`}
+                  >
+                    <CheckSquare className="w-4 h-4 inline mr-1" />
+                    Select All
+                  </button>
+                  <button
+                    onClick={clearSelection}
+                    className="text-sm px-3 py-1.5 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded transition-colors"
+                    title="Clear selection (Esc)"
+                  >
+                    <Square className="w-4 h-4 inline mr-1" />
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => void handleBulk('push_local')}
+                  disabled={isBulkRunning}
+                  className="flex items-center gap-2 px-4 py-2 text-white bg-teal-600 dark:bg-teal-700 rounded-lg hover:bg-teal-700 dark:hover:bg-teal-800 transition-colors disabled:opacity-50"
+                  title="Push commits you already made. Projects with uncommitted changes are held back for you to review."
+                >
+                  <Upload className="w-4 h-4" />
+                  Bulk Push Commits
+                </button>
+                <button
+                  onClick={() => void handleBulk('full_sync')}
+                  disabled={isBulkRunning}
+                  className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors disabled:opacity-50"
+                  title="Sync each project's current branch with GitHub. Projects with uncommitted changes are held back for you to review."
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Bulk Sync Branches
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
