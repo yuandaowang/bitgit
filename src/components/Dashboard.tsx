@@ -10,6 +10,7 @@ import type { BulkProjectResult, PublishAction } from '../types';
 import { readDashboardView, writeDashboardView, type BoardDensity, type BoardLayout } from '../lib/dashboardView';
 import { labelCatalog, sameLabel } from '../lib/labels';
 import { LabelFilter } from './LabelFilter';
+import { ProjectSearchBox } from './ProjectSearchBox';
 import { Plus, RefreshCw, Settings, Sun, Moon, CheckSquare, Square, Upload, Search, Filter, BarChart3, FolderGit2 } from 'lucide-react';
 
 // Shortcuts take Ctrl everywhere and also ⌘ on macOS, where hints show ⌘.
@@ -207,7 +208,7 @@ export function Dashboard() {
       // Mod+F: Focus search (only if not already in an input)
       if (modKey && e.key === 'f' && !isInputField) {
         e.preventDefault();
-        const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+        const searchInput = document.getElementById('project-search') as HTMLInputElement | null;
         searchInput?.focus();
         return;
       }
@@ -380,16 +381,11 @@ export function Dashboard() {
         <div className="container mx-auto px-8 py-4">
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Box */}
-            <div className="flex-1 relative min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-              <input
-                type="text"
-                placeholder={`Search projects by name, path, or repository... (${MOD}F)`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-              />
-            </div>
+            <ProjectSearchBox
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={`Search projects by name, path, or repository... (${MOD}F)`}
+            />
 
             {/* Status Filter */}
             <div className="relative">
