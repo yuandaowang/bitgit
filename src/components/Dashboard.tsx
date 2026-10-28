@@ -215,10 +215,10 @@ export function Dashboard() {
         return;
       }
 
-      // Mod+A: Select All (only if not in an input field)
-      if (modKey && e.key === 'a' && !isInputField && projects.length > 0) {
+      // Mod+A selects the projects on screen. A filtered board does not select hidden projects.
+      if (modKey && e.key === 'a' && !isInputField && currentView === 'projects' && filteredProjects.length > 0) {
         e.preventDefault();
-        selectAll();
+        selectAll(filteredProjects.map((project) => project.id));
         return;
       }
 
@@ -238,7 +238,7 @@ export function Dashboard() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleRefreshAll, projects.length, hasSelection, selectAll, clearSelection, toggleTheme, currentView]);
+  }, [handleRefreshAll, filteredProjects, hasSelection, selectAll, clearSelection, toggleTheme, currentView]);
 
   const catalog = labelCatalog(projects);
   const catalogKey = catalog.map((item) => item.name.toLowerCase()).join('\n');
@@ -540,9 +540,9 @@ export function Dashboard() {
                 </span>
                 <div className="flex gap-2">
                   <button
-                    onClick={selectAll}
+                    onClick={() => selectAll(filteredProjects.map((project) => project.id))}
                     className="text-sm px-3 py-1.5 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded transition-colors"
-                    title={`Select all projects (${MOD}A)`}
+                    title={`Select the projects shown (${MOD}A)`}
                   >
                     <CheckSquare className="w-4 h-4 inline mr-1" />
                     Select All

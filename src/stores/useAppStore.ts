@@ -58,7 +58,7 @@ interface AppState {
 
   // Selection actions
   toggleSelection: (id: string) => void;
-  selectAll: () => void;
+  selectAll: (ids?: string[]) => void;
   clearSelection: () => void;
 
   // Settings actions
@@ -510,9 +510,10 @@ export const useAppStore = create<AppState>((set, get) => {
     });
   },
 
-  selectAll: () => {
+  // Pass the ids on screen. With no list, every project is selected.
+  selectAll: (ids?: string[]) => {
     set((state) => ({
-      selectedProjectIds: new Set(state.projects.map((p) => p.id)),
+      selectedProjectIds: new Set(ids ?? state.projects.map((project) => project.id)),
     }));
   },
 
