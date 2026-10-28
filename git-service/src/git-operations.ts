@@ -468,6 +468,7 @@ export class GitOperations {
       hasRemote: false,
       currentBranch: null,
       upstream: null,
+      remoteUrl: null,
       behindCommits: 0,
       remoteCheckedAt: null,
       remoteError: null,
@@ -490,6 +491,11 @@ export class GitOperations {
       status.upstream = upstream?.short ?? null;
 
       if (remote) {
+        const listed = await this.run(['remote', 'get-url', remote], { readOnly: true });
+        if (listed.code === 0) {
+          const value = listed.stdout.toString('utf8').trim();
+          if (value) status.remoteUrl = value;
+        }
         try {
           const fetched = await this.run(['fetch', '--prune', remote], { timeoutMs: STATUS_FETCH_TIMEOUT_MS });
           if (fetched.code === 0) status.remoteCheckedAt = new Date().toISOString();

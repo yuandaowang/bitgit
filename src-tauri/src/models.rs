@@ -134,6 +134,9 @@ pub struct GitStatus {
     pub current_branch: Option<String>,
     #[serde(default)]
     pub upstream: Option<String>,
+    // Fetch URL of the remote this status was read against. Missing on older caches.
+    #[serde(default)]
+    pub remote_url: Option<String>,
     #[serde(default)]
     pub behind_commits: u32,
     // When the remote was last read successfully; never set from a failed check.

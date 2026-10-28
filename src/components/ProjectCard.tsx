@@ -13,7 +13,8 @@ import { ValidationWarningModal } from './ValidationWarningModal';
 import { CommitModal } from './CommitModal';
 import { BranchIntegrationModal } from './git/BranchIntegrationModal';
 import { GitStatusSummary } from './git/GitStatusSummary';
-import { formatRelativeTime, getCardStatus, CardTone } from './git/gitStatusView';
+import { formatRelativeTime, getCardStatus, remoteTarget, type CardStatus, CardTone } from './git/gitStatusView';
+import { open as openExternal } from '@tauri-apps/api/shell';
 import { RecoveryWorkspace } from './recovery/RecoveryWorkspace';
 import { ProjectLabels } from './ProjectLabels';
 import {
@@ -135,6 +136,27 @@ const NOTICE_STYLE: Record<NoticeTone, string> = {
 
 const errorText = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
+
+function StatusLabel({ project, cardStatus, compact = false }: { project: Project; cardStatus: CardStatus; compact?: boolean }) {
+  const remote = cardStatus.tone === 'local_only' ? remoteTarget(project.gitStatus?.remoteUrl) : null;
+  if (remote) {
+    return (
+      <button
+        type="button"
+        data-testid="status-text"
+        className={`${compact ? 'text-xs' : 'text-sm'} max-w-full truncate text-left font-medium text-teal-700 hover:underline dark:text-teal-300`}
+        onClick={() => void openExternal(remote.href).catch(() => window.open(remote.href, '_blank', 'noopener,noreferrer'))}
+      >
+        {remote.label}
+      </button>
+    );
+  }
+  return (
+    <p className={`${compact ? 'text-xs' : 'text-sm'} text-gray-500 dark:text-gray-400 truncate`} data-testid="status-text">
+      {cardStatus.text}
+    </p>
+  );
+}
 
 // Native title tips do not appear in the macOS window, so icon buttons draw their own.
 function IconTip({ tip, children, align = 'end' }: { tip: string; align?: 'end' | 'center'; children: ReactNode }) {
@@ -1007,7 +1029,7 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
                 </h3>
                 {isArchived && <Archive className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500" />}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate" data-testid="status-text">{cardStatus.text}</p>
+              <StatusLabel project={project} cardStatus={cardStatus} compact />
             </div>
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -1157,7 +1179,7 @@ export function ProjectCard({ project, density = 'detail', labelCatalog = [] }: 
               <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{project.name}</h3>
               {isArchived && <Archive className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400" data-testid="status-text">{cardStatus.text}</p>
+            <StatusLabel project={project} cardStatus={cardStatus} />
           </div>
           <IconTip tip={isFavorite ? 'Remove from favorites' : 'Add to favorites'} align="center">
             <button

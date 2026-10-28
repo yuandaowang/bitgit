@@ -686,6 +686,8 @@ pub struct StatusInfo {
     #[serde(default)]
     pub upstream: Option<String>,
     #[serde(default)]
+    pub remote_url: Option<String>,
+    #[serde(default)]
     pub behind_commits: u32,
     #[serde(default)]
     pub remote_checked_at: Option<String>,

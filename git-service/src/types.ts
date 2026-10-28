@@ -5,6 +5,7 @@ export interface StatusInfo {
   hasRemote?: boolean;
   currentBranch?: string | null;
   upstream?: string | null;
+  remoteUrl?: string | null;
   behindCommits?: number;
   remoteCheckedAt?: string | null;
   remoteError?: string | null;

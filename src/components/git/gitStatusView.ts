@@ -41,6 +41,31 @@ export function isRemoteCheckStale(remoteCheckedAt: string | null | undefined, n
   return Number.isNaN(checked) || now - checked > STATUS_STALE_MS;
 }
 
+export interface RemoteTarget {
+  href: string;
+  label: string;
+}
+
+// Turns a Git remote URL into a page the browser can open. Local paths and unknown schemes stay closed.
+export function remoteTarget(raw: string | null | undefined): RemoteTarget | null {
+  if (!raw?.trim()) return null;
+  let href = raw.trim().replace(/\.git$/, '');
+  const scp = href.match(/^git@([^:]+):(.+)$/);
+  if (scp) href = `https://${scp[1]}/${scp[2]}`;
+  else {
+    const ssh = href.match(/^ssh:\/\/(?:[^@/]+@)?([^/]+)\/(.+)$/);
+    if (ssh) href = `https://${ssh[1]}/${ssh[2]}`;
+  }
+  if (!/^https?:\/\//i.test(href)) return null;
+  try {
+    const url = new URL(href);
+    const path = url.pathname.replace(/^\/+|\/+$/g, '');
+    return { href, label: path ? `${url.host}/${path}` : url.host };
+  } catch {
+    return null;
+  }
+}
+
 // What the card badge says. Anything the last check could not confirm is never shown as Synced.
 export function getCardStatus(project: Project, now: number = Date.now()): CardStatus {
   if (project.projectStatus === 'not_configured') return { tone: 'not_configured', text: 'Not Configured' };
