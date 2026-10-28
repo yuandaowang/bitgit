@@ -11,14 +11,14 @@ import { readDashboardView, writeDashboardView, type BoardDensity, type BoardLay
 import { labelCatalog, sameLabel } from '../lib/labels';
 import { LabelFilter } from './LabelFilter';
 import { ProjectSearchBox } from './ProjectSearchBox';
-import { Plus, RefreshCw, Settings, Sun, Moon, CheckSquare, Square, Upload, Search, Filter, BarChart3, FolderGit2 } from 'lucide-react';
+import { Plus, RefreshCw, Settings, Sun, Moon, CheckSquare, Square, Upload, Search, Filter, BarChart3, FolderGit2, ChevronDown } from 'lucide-react';
 
 // Shortcuts take Ctrl everywhere and also ⌘ on macOS, where hints show ⌘.
 const IS_MAC = navigator.userAgent.includes('Mac');
 const MOD = IS_MAC ? '⌘' : 'Ctrl+';
 
 function segmentClass(active: boolean) {
-  return `px-3 py-1.5 rounded-md text-sm transition-colors ${
+  return `inline-flex h-full items-center rounded-md px-2.5 text-sm transition-colors ${
     active
       ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
@@ -390,8 +390,8 @@ export function Dashboard() {
       <div className="sticky top-16 z-10">
       {currentView === 'projects' && (
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-8 py-4">
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="container mx-auto px-8 py-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Search Box */}
             <ProjectSearchBox
               value={searchQuery}
@@ -401,11 +401,11 @@ export function Dashboard() {
 
             {/* Status Filter */}
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <Filter className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white appearance-none cursor-pointer min-w-[180px]"
+                className="h-8 min-w-[9.5rem] cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white pl-8 pr-8 text-sm text-gray-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
                 <option value="all">All Status</option>
                 <option value="synced">Synced</option>
@@ -417,52 +417,49 @@ export function Dashboard() {
                 <option value="local_only">Local Only</option>
                 <option value="not_configured">Not Configured</option>
               </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
             </div>
 
-            <LabelFilter options={catalog} selected={selectedLabels} onChange={setSelectedLabels} />
-
-            {/* Favorites Filter */}
-            <button
-              onClick={() => setFavoritesOnly(!favoritesOnly)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                favoritesOnly
-                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-2 border-yellow-400 dark:border-yellow-600'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-              }`}
-              title="Show only favorites"
-            >
-              ⭐ {favoritesOnly ? 'Favorites Only' : 'All'}
-            </button>
+            <LabelFilter
+              options={catalog}
+              selected={selectedLabels}
+              onChange={setSelectedLabels}
+              favoritesOnly={favoritesOnly}
+              favoriteCount={projects.filter((project) => project.favorite).length}
+              onFavoritesOnlyChange={setFavoritesOnly}
+            />
 
             {/* Archived Filter */}
             <button
               onClick={() => setShowArchived(!showArchived)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`inline-flex h-8 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
                 showArchived
-                  ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-2 border-orange-400 dark:border-orange-600'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  ? 'border border-orange-400 bg-orange-100 text-orange-700 dark:border-orange-600 dark:bg-orange-900/30 dark:text-orange-300'
+                  : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
               title="Show archived projects"
             >
               {showArchived ? 'With Archived' : 'No Archived'}
             </button>
 
-            {/* Sort dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'name' | 'favorite' | 'activity')}
-              className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 min-w-[180px]"
-            >
-              <option value="favorite">Sort: Favorites First</option>
-              <option value="activity">Sort: Recent Activity</option>
-              <option value="name">Sort: Name (A-Z)</option>
-            </select>
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'name' | 'favorite' | 'activity')}
+                className="h-8 cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white pl-3 pr-8 text-sm text-gray-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="favorite">Sort: Favorites First</option>
+                <option value="activity">Sort: Recent Activity</option>
+                <option value="name">Sort: Name (A-Z)</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            </div>
 
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1" role="group" aria-label="Card density">
+            <div className="flex h-8 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-700" role="group" aria-label="Card density">
               <button type="button" aria-pressed={density === 'detail'} onClick={() => setDensity('detail')} className={segmentClass(density === 'detail')}>Detail</button>
               <button type="button" aria-pressed={density === 'simple'} onClick={() => setDensity('simple')} className={segmentClass(density === 'simple')}>Simple</button>
             </div>
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1" role="group" aria-label="Board layout">
+            <div className="flex h-8 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-700" role="group" aria-label="Board layout">
               <button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')} className={segmentClass(layout === 'list')}>List</button>
               <button type="button" aria-pressed={layout === 'grid'} onClick={() => setLayout('grid')} className={segmentClass(layout === 'grid')}>Grid</button>
             </div>
