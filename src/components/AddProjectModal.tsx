@@ -21,7 +21,9 @@ interface GitHubRepo {
 type Step = 1 | 2 | 3;
 
 export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
-  const { createProject } = useAppStore();
+  const { createProject, loadProjects, projects, settings } = useAppStore();
+
+  const [mode, setMode] = useState<'local' | 'wizard'>('local');
 
   // Step state
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -43,6 +45,13 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   // Loading states
   const [isCreating, setIsCreating] = useState(false);
 
+  // Local folder tab: pick a directory and list the Git repositories under it.
+  const [scanRoot, setScanRoot] = useState('');
+  const [foundRepos, setFoundRepos] = useState<string[]>([]);
+  const [selectedRepoPaths, setSelectedRepoPaths] = useState<Set<string>>(new Set());
+  const [isScanning, setIsScanning] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+
   // Reset modal when opened
   useEffect(() => {
     if (isOpen) {
@@ -51,6 +60,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
   }, [isOpen]);
 
   const resetModal = () => {
+    setMode('local');
     setCurrentStep(1);
     setProjectName('');
     setSelectedGitHub(null);
@@ -59,6 +69,9 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     setGithubSearchQuery('');
     setUseManualGitHub(false);
     setGithubRepos([]);
+    setScanRoot('');
+    setFoundRepos([]);
+    setSelectedRepoPaths(new Set());
   };
 
   // Load GitHub repos when reaching step 2
@@ -205,6 +218,75 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
     }
   };
 
+  const pathKey = (path: string) => path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+
+  const knownPaths = new Set(
+    projects.map((project) => project.localPath).filter((path): path is string => Boolean(path)).map(pathKey)
+  );
+
+  const handleScanFolder = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: 'Select a folder to scan for Git repositories',
+      });
+      if (!selected || typeof selected !== 'string') return;
+
+      setScanRoot(selected);
+      setIsScanning(true);
+      setFoundRepos([]);
+      setSelectedRepoPaths(new Set());
+      const repos = await invoke<string[]>('scan_directories', {
+        directories: [selected],
+        maxDepth: settings.scanning.depth || 3,
+        excludePatterns: settings.scanning.excludePatterns.length > 0
+          ? settings.scanning.excludePatterns
+          : ['node_modules', 'target', 'dist', 'build'],
+      });
+      setFoundRepos(repos);
+      setSelectedRepoPaths(new Set(repos.filter((path) => !knownPaths.has(pathKey(path)))));
+      if (repos.length === 0) {
+        toast('No Git repositories in this folder or its subfolders.');
+      }
+    } catch (error) {
+      toast.error(`Scan failed: ${error}`);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const toggleRepo = (path: string) => {
+    setSelectedRepoPaths((current) => {
+      const next = new Set(current);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  };
+
+  const handleAddScanned = async () => {
+    const repoPaths = [...selectedRepoPaths];
+    if (repoPaths.length === 0) return;
+    setIsAdding(true);
+    try {
+      const knownIds = new Set(projects.map((project) => project.id));
+      const saved = await invoke<Array<{ id: string }>>('add_repositories', { repoPaths });
+      const added = saved.filter((project) => !knownIds.has(project.id)).length;
+      await loadProjects();
+      toast.success(
+        added > 0
+          ? `Added ${added} project${added === 1 ? '' : 's'}`
+          : 'Those folders are already in BitGit'
+      );
+      onClose();
+    } catch (error) {
+      toast.error(`Failed to add projects: ${error}`);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   const filteredRepos = githubRepos.filter(repo =>
     repo.name.toLowerCase().includes(githubSearchQuery.toLowerCase()) ||
     repo.fullName.toLowerCase().includes(githubSearchQuery.toLowerCase())
@@ -218,8 +300,10 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
-            <p className="text-sm text-gray-600 mt-1">Step {currentStep} of 3</p>
+            <h2 className="text-2xl font-bold text-gray-900">Add Project</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {mode === 'local' ? 'Scan a local folder for Git repositories' : `Step ${currentStep} of 3`}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -229,7 +313,35 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
           </button>
         </div>
 
+        <div className="px-6 pt-4">
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'local'}
+              onClick={() => setMode('local')}
+              className={`flex-1 px-3 py-2 rounded-md text-sm transition-colors ${
+                mode === 'local' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Local folder
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'wizard'}
+              onClick={() => setMode('wizard')}
+              className={`flex-1 px-3 py-2 rounded-md text-sm transition-colors ${
+                mode === 'wizard' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Create step by step
+            </button>
+          </div>
+        </div>
+
         {/* Progress Bar */}
+        {mode === 'wizard' && (
         <div className="px-6 pt-4">
           <div className="flex items-center gap-2">
             {[1, 2, 3].map((step) => (
@@ -248,11 +360,62 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
             <span>Local</span>
           </div>
         </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Step 1: Project Name */}
-          {currentStep === 1 && (
+          {mode === 'local' && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Choose a folder. BitGit checks that folder and its subfolders and lists the ones that are Git repositories.
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleScanFolder()}
+                disabled={isScanning}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:border-teal-600 hover:bg-teal-50 transition-colors disabled:opacity-50"
+              >
+                {isScanning ? <Loader2 className="w-5 h-5 animate-spin" /> : <FolderGit className="w-5 h-5" />}
+                {scanRoot ? 'Choose another folder' : 'Choose folder'}
+              </button>
+              {scanRoot && (
+                <p className="text-sm text-gray-700 break-all">{scanRoot}</p>
+              )}
+              {scanRoot && !isScanning && (
+                foundRepos.length === 0 ? (
+                  <p className="text-sm text-gray-500">No Git repositories found.</p>
+                ) : (
+                  <div className="border border-gray-300 rounded-lg max-h-64 overflow-y-auto">
+                    {foundRepos.map((path) => {
+                      const already = knownPaths.has(pathKey(path));
+                      const name = path.split(/[/\\]/).filter(Boolean).pop() ?? path;
+                      return (
+                        <label
+                          key={path}
+                          className={`flex items-start gap-3 px-4 py-3 border-b border-gray-200 last:border-b-0 ${already ? 'opacity-60' : 'cursor-pointer hover:bg-gray-50'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-1"
+                            checked={selectedRepoPaths.has(path)}
+                            disabled={already}
+                            onChange={() => toggleRepo(path)}
+                          />
+                          <span className="min-w-0">
+                            <span className="block font-medium text-gray-900">{name}</span>
+                            <span className="block text-xs text-gray-500 break-all">{path}</span>
+                            {already && <span className="block text-xs text-gray-500">Already in BitGit</span>}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {mode === 'wizard' && currentStep === 1 && (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -274,7 +437,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
           )}
 
           {/* Step 2: Link GitHub */}
-          {currentStep === 2 && (
+          {mode === 'wizard' && currentStep === 2 && (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -388,7 +551,7 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
           )}
 
           {/* Step 3: Link Local Directory */}
-          {currentStep === 3 && (
+          {mode === 'wizard' && currentStep === 3 && (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -443,6 +606,25 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+          {mode === 'local' ? (
+            <>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleAddScanned()}
+                disabled={isAdding || selectedRepoPaths.size === 0}
+                className="flex items-center gap-2 px-6 py-2 text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Add {selectedRepoPaths.size > 0 ? selectedRepoPaths.size : ''} selected
+              </button>
+            </>
+          ) : (
+          <>
           <div className="flex gap-2">
             {currentStep > 1 && (
               <button
@@ -492,6 +674,8 @@ export function AddProjectModal({ isOpen, onClose }: AddProjectModalProps) {
               </button>
             )}
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>
