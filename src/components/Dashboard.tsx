@@ -562,7 +562,7 @@ export function Dashboard() {
                   onClick={() => void handleBulk('push_local')}
                   disabled={isBulkRunning}
                   className="flex items-center gap-2 px-4 py-2 text-white bg-teal-600 dark:bg-teal-700 rounded-lg hover:bg-teal-700 dark:hover:bg-teal-800 transition-colors disabled:opacity-50"
-                  title="Push commits you already made. Projects with uncommitted changes are held back for you to review."
+                  title="Push commits you already made to each project's Git remote. Projects with uncommitted changes are held back for you to review."
                 >
                   <Upload className="w-4 h-4" />
                   Bulk Push Commits
@@ -571,7 +571,7 @@ export function Dashboard() {
                   onClick={() => void handleBulk('full_sync')}
                   disabled={isBulkRunning}
                   className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors disabled:opacity-50"
-                  title="Sync each project's current branch with GitHub. Projects with uncommitted changes are held back for you to review."
+                  title="Sync each project's current branch with its Git remote. Projects with uncommitted changes are held back for you to review."
                 >
                   <RefreshCw className="w-4 h-4" />
                   Bulk Sync Branches

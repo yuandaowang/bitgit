@@ -240,8 +240,14 @@ export const useAppStore = create<AppState>((set, get) => {
     if (!project.localPath) {
       return { ...base, outcome: 'skipped', message: 'No local folder is linked.' };
     }
-    if (!project.githubUrl) {
-      return { ...base, outcome: 'skipped', message: 'Not linked to GitHub, so there is nowhere to publish.' };
+    if (project.gitStatus?.isGitRepo === false) {
+      return { ...base, outcome: 'skipped', message: 'This folder is not a Git repository, so there is nowhere to publish.' };
+    }
+    // The push uses the branch upstream already stored in the local repository. A saved GitHub
+    // link is optional; GitLab and any other host publish the same way.
+    const hasRemote = Boolean(project.githubUrl || project.gitStatus?.remoteUrl || project.gitStatus?.hasRemote);
+    if (project.gitStatus && !hasRemote) {
+      return { ...base, outcome: 'skipped', message: 'No Git remote is configured, so there is nowhere to publish.' };
     }
 
     let changes: FileChangeInfo[];
