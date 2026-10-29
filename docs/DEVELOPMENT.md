@@ -558,7 +558,7 @@ npm run tauri:build
 
 ### Automatic updates
 
-Since 1.1.2 the app asks `https://github.com/sevenevesai/bitgit/releases/latest/download/latest.json`
+Since 1.1.2 the app asks `https://github.com/yuandaowang/bitgit/releases/latest/download/latest.json`
 at startup (Tauri's built-in updater, `tauri.updater` in `tauri.conf.json`) and offers to install a
 newer version. Installs of 1.1.1 and earlier have no updater and must download once by hand.
 

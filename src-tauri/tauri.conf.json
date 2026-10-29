@@ -81,9 +81,9 @@
       "active": true,
       "dialog": true,
       "endpoints": [
-        "https://github.com/sevenevesai/bitgit/releases/latest/download/latest.json"
+        "https://github.com/yuandaowang/bitgit/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU5MDg3ODM5MkZBRjlGQzUKUldURm42OHZPWGdJV1JqNE5LOWw4d0I4blRSZ3d2dVRjUlBDWkxra0x2V2tFM1pnL0JqdUwwUU8K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk4MzI1MEQ1OEQzNEU2MDUKUldRRjVqU04xVkF5bU5nMUFxZTA5Z0txTFFReWNSWG4rdzJzRkdDSk9DQzhvWDc2bkpLVC9XbDEK",
       "windows": {
         "installMode": "passive"
       }
