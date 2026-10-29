@@ -176,6 +176,8 @@ jobs:
           umask 077
           printf '%s\n' "$APPLE_API_KEY_CONTENT" > "$RUNNER_TEMP/AuthKey.p8"
 
+      # Parallel jobs all replace latest.json. A delete/upload race returns 404
+      # (tauri-apps/tauri-action#1270). Retries cover the usual collision.
       - name: Build Tauri app
         if: runner.os != 'macOS'
         uses: tauri-apps/tauri-action@v0
@@ -186,6 +188,7 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           tagName: ${{ github.ref_name }}
           updaterJsonPreferNsis: true
+          retryAttempts: 5
           args: ${{ matrix.args }}
 
       # Tauri CLI 1.6.3 (bundler 1.7.1) imports the certificate into a temporary keychain, signs
@@ -207,6 +210,7 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           tagName: ${{ github.ref_name }}
           updaterJsonPreferNsis: true
+          retryAttempts: 5
           args: ${{ matrix.args }} --config ${{ runner.temp }}/bundle.conf.json
 
       # Apple Silicon calls a downloaded app with no signature damaged and offers no Open Anyway;
@@ -224,6 +228,7 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           tagName: ${{ github.ref_name }}
           updaterJsonPreferNsis: true
+          retryAttempts: 5
           args: ${{ matrix.args }} --bundles app,updater --config ${{ runner.temp }}/bundle.conf.json
 
       - name: Verify signature, notarization and Gatekeeper (macOS)
