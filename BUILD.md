@@ -270,85 +270,50 @@ To use a commercial certificate:
 
 ### Updating Version Number
 
-Edit version in **both** files:
+Keep the same version in all five places. `git-service/package.json` stays at `0.1.0`.
 
-**package.json:**
-```json
-{
-  "version": "0.2.0"
-}
+- `package.json` and the two root `version` fields in `package-lock.json`
+- `src-tauri/tauri.conf.json` (`package.version`)
+- `src-tauri/Cargo.toml` and the `bitgit` package in `src-tauri/Cargo.lock`
+
+The GitHub release text lives in `.github/workflows/release.yml` under **What's New**. Move the
+previous version's bullets under `### In x.y.z` so they stay on the release page.
+
+## Publishing installers on GitHub
+
+`.github/workflows/release.yml` builds every platform when a `v*` tag is pushed. The app version
+inside the installers comes from `tauri.conf.json`, so the tag must be that version with a `v`
+prefix (`v1.3.0` for version `1.3.0`).
+
+```bash
+git tag v1.3.0
+git push origin v1.3.0
 ```
 
-**src-tauri/tauri.conf.json:**
-```json
-{
-  "package": {
-    "version": "0.2.0"
-  }
-}
-```
+The workflow then:
 
-**src-tauri/Cargo.toml:**
-```toml
-[package]
-version = "0.2.0"
-```
+1. Opens a draft release named `BitGit 1.3.0` and writes the **What's New** text into it.
+2. Builds in parallel:
+   - **Windows** (`windows-2025`): NSIS setup (`BitGit_<version>_x64-setup.exe`) and MSI
+     (`BitGit_<version>_x64_en-US.msi`)
+   - **macOS** (`macos-15`, Apple Silicon runner): Apple Silicon and Intel, each as
+     `BitGit_<version>_aarch64.dmg` or `BitGit_<version>_x64.dmg`, plus the updater archive.
+     Intel is cross-compiled. With none of the six Apple secrets set, the app is signed ad hoc
+     and the DMG is unsigned. With all six set, it is Developer ID signed and notarized.
+   - **Linux** (`ubuntu-22.04`): `bit-git_<version>_amd64.AppImage` only
+3. Attaches those files to the draft, then marks the release public and a **prerelease**.
 
-Then rebuild:
-```powershell
-.\scripts\build-msi.ps1
-```
+`releases/latest`, which the in-app updater reads, skips prereleases. After you have checked the
+assets, open the release on GitHub and clear **Set as a pre-release**. Re-running a failed job
+replaces that job's assets on the same release.
 
-## CI/CD Integration
+`workflow_dispatch` is also listed, but the release name is taken from the tag. Trigger the
+workflow by pushing `v*`, not from the Actions button on a branch.
 
-### GitHub Actions Example
-
-BitGit's own pipelines are `.github/workflows/ci.yml` and `release.yml`. The example below is a
-minimal Windows-only MSI build.
-
-```yaml
-name: Build MSI
-
-on:
-  push:
-    tags:
-      - 'v*'
-
-jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Install dependencies
-        run: |
-          npm install
-          cd git-service && npm install && cd ..
-
-      - name: Build MSI
-        run: npm run tauri build
-
-      - name: Upload MSI
-        uses: actions/upload-artifact@v3
-        with:
-          name: bitgit-msi
-          path: src-tauri/target/release/bundle/msi/*.msi
-```
-
-**Note:** GitHub Actions won't have access to your self-signed certificate. You'll need to:
-1. Use GitHub Secrets to store certificate PFX and password
-2. Import the certificate in the CI workflow
-3. Or skip signing in CI and sign locally before release
+Windows installers from this workflow are not code-signed. The self-signed certificate in
+[Code Signing Setup](#code-signing-setup-first-time-only) exists only on a local machine. GitHub
+Actions does not have it. Signing in CI means storing the PFX and its password as repository
+secrets and importing them in the workflow; otherwise users see SmartScreen on first launch.
 
 ## Development vs Production
 

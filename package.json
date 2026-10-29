@@ -1,7 +1,7 @@
 {
   "name": "bitgit",
-  "version": "1.2.1",
-  "description": "A GitHub Repository Manager",
+  "version": "1.3.0",
+  "description": "Desktop app for code recovery and visual Git",
   "type": "module",
   "scripts": {
     "dev": "vite",

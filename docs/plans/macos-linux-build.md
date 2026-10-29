@@ -1,8 +1,10 @@
 # macOS and Linux build plan
 
-Status (2026-10-26): `release.yml` published 1.2.0 (Windows, an unsigned macOS build and the Linux
-AppImage) on 2026-10-25, and 1.2.1 follows with the repository picker fix and ⌘ shortcuts. The
-items under "Verification still needed" stay open until checked on a Mac or a Linux desktop.
+Status (2026-10-29): 1.3.0 is prepared on `dev-ui-optimize` (board density and grid, labels,
+search history, any Git remote including GitLab, a local-folder project, and a terminal from the
+compact card). 1.2.0 and 1.2.1 are the published Windows, unsigned macOS and Linux AppImage
+releases. The items under "Verification still needed" stay open until checked on a Mac or a Linux
+desktop.
 
 ## Goal
 

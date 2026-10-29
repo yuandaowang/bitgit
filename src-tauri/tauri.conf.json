@@ -7,7 +7,7 @@
   },
   "package": {
     "productName": "BitGit",
-    "version": "1.2.1"
+    "version": "1.3.0"
   },
   "tauri": {
     "allowlist": {
@@ -34,8 +34,8 @@
       "targets": ["nsis", "msi", "app", "dmg", "appimage", "updater"],
       "identifier": "com.bitgit.app",
       "category": "DeveloperTool",
-      "shortDescription": "Git repository manager for quick syncing",
-      "longDescription": "BitGit is a desktop app for managing multiple Git repositories with GitHub integration. Built for developers who want quick, reliable syncing without terminal juggling.",
+      "shortDescription": "Save a working version and get it back",
+      "longDescription": "BitGit keeps named copies of a project, shows what restoring one would change, and writes a recovered copy into a new folder. A visual Git dashboard publishes only the projects and files you select.",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",

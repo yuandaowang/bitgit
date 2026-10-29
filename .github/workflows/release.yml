@@ -40,6 +40,14 @@ jobs:
             **Linux (AppImage only):** Download `bit-git_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage`, make it executable (`chmod +x`) and run it. It needs FUSE 2 (`libfuse2`; `libfuse2t64` on Ubuntu 24.04), Node.js 22 or later, Git, and a running Secret Service (GNOME Keyring, KWallet or KeePassXC) to store the GitHub token. The .deb and .rpm are no longer published: they need webkit2gtk 4.0, which current distributions do not ship. For a blank window on NVIDIA drivers, see [INSTALL.md](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/INSTALL.md).
 
             ### What's New
+            - The project board can be compact or a grid. Projects can carry labels, and the board filters by a label or by favorites. The search box keeps the ten latest searches
+            - Compact cards show whether the branch matches its remote and how many files are uncommitted, using icons. Hover a button to see what it does, including opening a terminal in the project folder
+            - A configured Git remote counts as connected, including GitLab. The card names that remote, and bulk push, pull and publish use it, not only a repository linked through GitHub
+            - A new project can start from a local folder
+            - Select All selects only the projects on screen. The selection bar and bulk results stay at the bottom, so the cards do not move
+            - A project card no longer shows the favorite star twice
+
+            ### In 1.2.1
             - Linking a project to an existing GitHub repository works again: the list shows each repository's owner, searching no longer closes it with an error, only the repository you pick is selected, and linking saves its URL. Thanks @zznam (#1)
             - macOS: dashboard shortcuts use ⌘ (⌘R refresh, ⌘N new project, ⌘F search, ⌘A select all, ⌘D theme) and their hints say so; Ctrl still works
 
